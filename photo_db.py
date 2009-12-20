@@ -1,6 +1,7 @@
 from scipy import *
 import spreadsheet, EXIF
 import os, time
+#import odict
 
 time_fmt = '%Y:%m:%d %H:%M:%S'
 
@@ -9,12 +10,23 @@ time_fmt = '%Y:%m:%d %H:%M:%S'
 basepaths = ['/mnt/personal/pictures/Joshua_Ryan/', \
              '/mnt/personal/pictures/']
 
-EXIF_map = {'EXIF ExifImageWidth':'width', \
-            'EXIF ExifImageLength':'height', \
+EXIF_map = {'EXIF ExifImageWidth':'exif_width', \
+            'EXIF ExifImageLength':'exif_height', \
             'EXIF DateTimeOriginal':'exif_date', \
             'EXIF DateTimeDigitized':'exif_date_digitized'
             }
 
+## col_map = odict.OrderedDict([('filename','filename'), \
+##                              ('relpath','relpath'), \
+##                              ])
+
+cols = ['filename','relpath','exif_date', \
+        'exif_date_digitized', 'mtime', \
+        'ctime', 'size', \
+        'exif_width', 'exif_height']
+
+colmap = dict(zip(cols, cols))
+    
 
 def seconds_to_str(seconds):
     st = time.localtime(seconds)
@@ -38,7 +50,7 @@ class photo(object):
         self.basepath = None
         self.relpath = None
         for base in basepaths:
-            if self.pathin.find(base) == 0:
+            if self.folder.find(base) == 0:
                 self.basepath = base
                 N = len(base)
                 relpath = self.pathin[N:]
@@ -50,6 +62,7 @@ class photo(object):
     def __init__(self, pathin, get_EXIF_data=True, \
                  get_os_data=True, basepath=None):
         self.pathin = pathin
+        self.folder, self.filename = os.path.split(pathin)
         self.find_relpath()
         if get_EXIF_data:
             self.read_EXIF_data()
