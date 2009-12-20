@@ -23,7 +23,8 @@ EXIF_map = {'EXIF ExifImageWidth':'exif_width', \
 cols = ['filename','relpath','exif_date', \
         'exif_date_digitized', 'mtime', \
         'ctime', 'size', \
-        'exif_width', 'exif_height']
+        'exif_width', 'exif_height', 'caption', \
+        'labels','ryan_rating','missy_rating']
 
 colmap = dict(zip(cols, cols))
     
@@ -33,7 +34,9 @@ def seconds_to_str(seconds):
     time_str = time.strftime(time_fmt, st)
     return time_str
 
-    
+
+empty_attrs = ['caption','labels','ryan_rating','missy_rating']
+
 class photo(object):
     def read_EXIF_data(self):
         tags = EXIF.process_file_from_path(self.pathin)
@@ -68,5 +71,27 @@ class photo(object):
             self.read_EXIF_data()
         if get_os_data:
             self.get_os_data()
+        for attr in empty_attrs:
+            setattr(self, attr, None)
         
         
+class photo_db(spreadsheet.CSVSpreadSheet):
+    def __init__(self, pathin, *args, **kwargs):
+        spreadsheet.CSVSpreadSheet.__init__(self, pathin, *args, \
+                                            **kwargs)
+        self.colmap = colmap
+        if os.path.exists(pathin):
+            self.FindLabelRow('filename')
+            self.FindDataColumns()
+            self.MapCols()
+        else:
+            self.labels = cols
+
+
+if __name__ == '__main__':
+    db_path = '/mnt/personal/pictures/Joshua_Ryan/photo_db.csv'
+    mydb = photo_db(db_path)
+    image_finder = 
+    #paths =
+    #photos = [photo(path) for path in paths]
+    #mydb.add_photos(photos)
