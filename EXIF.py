@@ -1697,6 +1697,11 @@ def process_file(f, stop_tag='UNDEF', details=True, strict=False, debug=False):
 
     return hdr.tags
 
+def process_file_from_path(pathin, details=False, **kwargs):
+    f = open(pathin, 'rb')
+    tags = process_file(f, details=details, **kwargs)
+    f.close()
+    return tags
 
 # show command line usage
 def usage(exit_status):
