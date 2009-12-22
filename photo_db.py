@@ -1,11 +1,19 @@
 from scipy import *
+import numpy
 import spreadsheet, EXIF, csv
-import os, time, md5sum
+import os, time, md5sum, re, glob
+from PIL import Image
 #import odict
 
 from IPython.Debugger import Pdb
 
 time_fmt = '%Y:%m:%d %H:%M:%S'
+stamp_fmt = '%m_%d_%y__%H_%M_%S'
+
+def time_stamp_to_seconds(stampstr):
+    st = time.strptime(stampstr, stamp_fmt)
+    seconds = time.mktime(st)
+    return seconds
 
 #make sure the more specific paths are higher in the list since
 #find_relpath will stop at the first match
@@ -25,12 +33,17 @@ EXIF_map = {'EXIF ExifImageWidth':'exif_width', \
 cols = ['filename','relpath','exif_date', \
         'exif_date_digitized', 'mtime', \
         'ctime', 'size', \
-        'exif_width', 'exif_height', 'caption', \
+        'exif_width', 'exif_height', 'PIL_width', \
+        'PIL_height', 'caption', \
         'image_labels','ryan_rating','missy_rating', \
         'md5sum']
 
 colmap = dict(zip(cols, cols))
-    
+
+def mysearch(arrayin, element):
+    bool_vect = where(arrayin==element)[0]
+    assert(len(bool_vect)==1), 'Did not find exactly 1 match for ' + str(element)
+    return bool_vect[0]
 
 def seconds_to_str(seconds):
     st = time.localtime(seconds)
@@ -46,6 +59,11 @@ class photo(object):
         for key, attr in EXIF_map.iteritems():
             val = str(tags[key])
             setattr(self, attr, val)
+
+    def get_PIL_size(self):
+        img = Image.open(self.pathin)
+        self.PIL_width, self.PIL_height = img.size
+        
 
     def get_os_data(self):
         self.mtime = seconds_to_str(os.path.getmtime(self.pathin))
@@ -66,24 +84,28 @@ class photo(object):
                 break
                 
     def __init__(self, pathin, get_EXIF_data=True, \
-                 get_os_data=True, calc_md5=True, basepath=None):
-        #t1 = time.time()
+                 get_os_data=True, calc_md5=True, \
+                 get_PIL_size=True, basepath=None):
+        t1 = time.time()
         self.pathin = pathin
         self.folder, self.filename = os.path.split(pathin)
         self.find_relpath()
-        #t2 = time.time()
+        t2 = time.time()
         if get_EXIF_data:
             self.read_EXIF_data()
-        #t3 = time.time()
+        t3 = time.time()
         if get_os_data:
             self.get_os_data()
-        #t4 = time.time()
+        t4 = time.time()    
+        if get_PIL_size:
+            self.get_PIL_size()
+        t5 = time.time()
         if calc_md5:
             self.md5sum = md5sum.md5sum(self.pathin)
-        #t5 = time.time()
+        t6 = time.time()
         for attr in empty_attrs:
             setattr(self, attr, None)
-        #t6 = time.time()
+        t7 = time.time()
 ##         for i in range(2,7):
 ##             dt = 't%i-t%i' % (i, i-1)
 ##             exec('curt='+dt)
@@ -103,6 +125,13 @@ class photo(object):
         
 class photo_db(spreadsheet.CSVSpreadSheet):
     def __init__(self, pathin, *args, **kwargs):
+        if os.path.isdir(pathin):
+            self.folder = pathin
+            pathin = self.find_latest_db()
+            self.namein = None
+        else:
+            self.folder, self.namein = os.path.split(pathin)
+            
         spreadsheet.CSVSpreadSheet.__init__(self, pathin, *args, \
                                             **kwargs)
         self.colmap = colmap
@@ -117,7 +146,24 @@ class photo_db(spreadsheet.CSVSpreadSheet):
 
     def search_for_photo(self, photo):
         if photo.md5sum in self.md5sum:
-            ind = self.md5sum.index(photo.md5sum)
+            if type(self.md5sum) == numpy.ndarray:
+                ind = self.md5sum.tolist().index(photo.md5sum)
+##                 t1 = time.time()
+##                 index1 = where(self.md5sum==photo.md5sum)[0][0]
+##                 t2 = time.time()
+##                 index2 = mysearch(self.md5sum, photo.md5sum)
+##                 t3 = time.time()
+##                 index3 = self.md5sum.tolist().index(photo.md5sum)
+##                 t4 = time.time()
+##                 for i in range(2,5):
+##                     dt = 't%i-t%i' % (i, i-1)
+##                     exec('curt='+dt)
+##                     print(dt + '='+str(curt))
+##                 assert index1==index2, 'indices dont match'
+##                 assert index1==index3, 'indices dont match'
+##                 ind = index1
+            else:
+                ind = self.md5sum.index(photo.md5sum)
             return ind
         
     def add_photo(self, photo, verbosity=1, copy=False):
@@ -132,7 +178,10 @@ class photo_db(spreadsheet.CSVSpreadSheet):
             for attr in cols:
                 val = getattr(photo, attr)
                 vect = getattr(self, attr)
-                vect.append(val)
+                if type(vect) == numpy.ndarray:
+                    vect = numpy.append(vect, val)
+                else:
+                    vect.append(val)
             self.alldata.append(photo.torow())
                 #setattr(self, attr, val)#shouldn't be necessary
 
@@ -141,6 +190,31 @@ class photo_db(spreadsheet.CSVSpreadSheet):
             self.add_photo(photo, *args, **kwargs)
 
 
+    def find_latest_db(self, pat='photo_db_'):
+        glob_pat = pat +'*.csv'
+        csvpaths = glob.glob(os.path.join(self.folder, glob_pat))
+        p = re.compile(pat+'(.*)\\.csv')
+        stamps = []
+        for csvpath in csvpaths:
+            q = p.search(csvpath)
+            stamp = q.group(1)
+            stamps.append(stamp)
+        seconds = map(time_stamp_to_seconds, stamps)
+        ind = numpy.argmax(seconds)
+        return csvpaths[ind]
+            
+
+        
+    def get_new_path(self, basename='photo_db'):
+        st = time.localtime()
+        time_str = time.strftime(stamp_fmt, st)
+        if basename[-1] != '_':
+            basename += '_'
+        self.csvname = basename + time_str + '.csv'
+        self.csvpath = os.path.join(self.folder, self.csvname)
+        return self.csvpath
+        
+        
     def save(self, pathout=None):
         if pathout is None:
             pathout = self.get_new_path()
@@ -149,12 +223,13 @@ class photo_db(spreadsheet.CSVSpreadSheet):
 
 if __name__ == '__main__':
     import file_finder
-    db_path = '/mnt/personal/pictures/Joshua_Ryan/photo_db.csv'
+    db_path = '/mnt/personal/pictures/Joshua_Ryan/'#photo_db_12_21_09__19_35_11.csv'
     mydb = photo_db(db_path)
 #    folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/2009-12-17--12.48.31'
     folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/'
     image_finder = file_finder.Image_Finder(folder)
-    #paths = image_finder.Find_All_Images()
-    paths = image_finder.Find_Images()
+    paths = image_finder.Find_All_Images()
+    #paths = image_finder.Find_Images()
     photos = [photo(path) for path in paths]
     mydb.add_photos(photos)
+    mydb.save()
