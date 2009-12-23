@@ -228,8 +228,8 @@ if __name__ == '__main__':
 #    folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/2009-12-17--12.48.31'
     folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/'
     image_finder = file_finder.Image_Finder(folder)
-    paths = image_finder.Find_All_Images()
-    #paths = image_finder.Find_Images()
+    #paths = image_finder.Find_All_Images()
+    paths = image_finder.Find_Images()
     photos = [photo(path) for path in paths]
     mydb.add_photos(photos)
     mydb.save()
