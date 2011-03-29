@@ -30,7 +30,7 @@ EXIF_map = {'EXIF ExifImageWidth':'exif_width', \
 ##                              ('relpath','relpath'), \
 ##                              ])
 
-cols = ['filename','relpath','exif_date', \
+cols = ['photo_id','filename','relpath','exif_date', \
         'exif_date_digitized', 'mtime', \
         'ctime', 'size', \
         'exif_width', 'exif_height', 'PIL_width', \
@@ -111,20 +111,21 @@ class photo(object):
 ##             exec('curt='+dt)
 ##             print(dt + '='+str(curt))
 
-    def torow(self):
-        rowout = None
+    def torow(self, photo_id):
+        rowout = ['%i' % photo_id]
         for attr in cols:
-            val = getattr(self, attr)
-            if val is None:
-                val = ''
-            if rowout is None:
-                rowout = [val]
-            else:
-                rowout.append(val)
+            if attr != 'photo_id':
+                val = getattr(self, attr)
+                if val is None:
+                    val = ''
+                if rowout is None:
+                    rowout = [val]
+                else:
+                    rowout.append(val)
         return rowout
         
 class photo_db(spreadsheet.CSVSpreadSheet):
-    def __init__(self, pathin, *args, **kwargs):
+    def __init__(self, pathin, force_new=False, **kwargs):
         if os.path.isdir(pathin):
             self.folder = pathin
             pathin = self.find_latest_db()
@@ -132,13 +133,15 @@ class photo_db(spreadsheet.CSVSpreadSheet):
         else:
             self.folder, self.namein = os.path.split(pathin)
             
-        spreadsheet.CSVSpreadSheet.__init__(self, pathin, *args, \
+        spreadsheet.CSVSpreadSheet.__init__(self, pathin, \
                                             **kwargs)
         self.colmap = colmap
-        if os.path.exists(pathin):
-            self.FindLabelRow('filename')
+        self.next_id = 1
+        if (not force_new) and os.path.exists(pathin):
+            self.FindLabelRow('photo_id')
             self.FindDataColumns()
             self.MapCols()
+            self.next_id = int(self.photo_id.astype(float).max()) + 1
         else:
             self.labels = cols
             for attr in cols:
@@ -176,14 +179,17 @@ class photo_db(spreadsheet.CSVSpreadSheet):
                 print('  db filename: ' + self.filename[ind])
         else:
             for attr in cols:
-                val = getattr(photo, attr)
-                vect = getattr(self, attr)
-                if type(vect) == numpy.ndarray:
-                    vect = numpy.append(vect, val)
-                else:
-                    vect.append(val)
-            self.alldata.append(photo.torow())
+                if attr != 'photo_id':#<-- the photos don't necessary know their own id'sg
+                    val = getattr(photo, attr)
+                    vect = getattr(self, attr)
+                    if type(vect) == numpy.ndarray:
+                        vect = numpy.append(vect, val)
+                    else:
+                        vect.append(val)
+            self.alldata.append(photo.torow(self.next_id))
+            self.next_id += 1
                 #setattr(self, attr, val)#shouldn't be necessary
+
 
     def add_photos(self, photo_list, *args, **kwargs):
         for photo in photo_list:
@@ -217,19 +223,28 @@ class photo_db(spreadsheet.CSVSpreadSheet):
         
     def save(self, pathout=None):
         if pathout is None:
-            pathout = self.get_new_path()
+            #pathout = self.get_new_path()
+            if self.namein is None:
+                name = 'photo_db.csv'
+            else:
+                name = self.namein
+            pathout = os.path.join(self.folder, name)
         self.WriteAllDataCSV(pathout, append=False)
         
 
 if __name__ == '__main__':
     import file_finder
-    db_path = '/mnt/personal/pictures/Joshua_Ryan/'#photo_db_12_21_09__19_35_11.csv'
-    mydb = photo_db(db_path)
+    db_path = '/mnt/personal/pictures/Joshua_Ryan/photo_db.csv'
+    #photo_db_12_21_09__19_35_11.csv'
+    force = 0
+    mydb = photo_db(db_path, force_new=force)
 #    folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/2009-12-17--12.48.31'
-    folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/'
+    #folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/'
+    #folder = '/mnt/personal/pictures/Joshua_Ryan/2011/Mar_2011/Eli'
+    folder = '/mnt/personal/pictures/Joshua_Ryan/2011/Mar_2011/unsorted'
     image_finder = file_finder.Image_Finder(folder)
-    #paths = image_finder.Find_All_Images()
-    paths = image_finder.Find_Images()
+    paths = image_finder.Find_All_Images()
+    #paths = image_finder.Find_Images()
     photos = [photo(path) for path in paths]
     mydb.add_photos(photos)
     mydb.save()
