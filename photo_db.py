@@ -35,7 +35,7 @@ cols = ['filename','relpath','exif_date', \
         'ctime', 'size', \
         'exif_width', 'exif_height', 'PIL_width', \
         'PIL_height', 'caption', \
-        'image_labels','ryan_rating','missy_rating', \
+        'tags','rating',\
         'md5sum']
 
 colmap = dict(zip(cols, cols))
@@ -51,7 +51,7 @@ def seconds_to_str(seconds):
     return time_str
 
 
-empty_attrs = ['caption','image_labels','ryan_rating','missy_rating']
+empty_attrs = ['caption','tags','rating']
 
 class photo(object):
     def read_EXIF_data(self):
