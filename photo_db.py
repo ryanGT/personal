@@ -18,7 +18,8 @@ def time_stamp_to_seconds(stampstr):
 #make sure the more specific paths are higher in the list since
 #find_relpath will stop at the first match
 basepaths = ['/mnt/personal/pictures/Joshua_Ryan/', \
-             '/mnt/personal/pictures/']
+             '/mnt/personal/pictures/', \
+             '/home/ryan/Pictures/']
 
 EXIF_map = {'EXIF ExifImageWidth':'exif_width', \
             'EXIF ExifImageLength':'exif_height', \
@@ -30,8 +31,10 @@ EXIF_map = {'EXIF ExifImageWidth':'exif_width', \
 ##                              ('relpath','relpath'), \
 ##                              ])
 
-cols = ['photo_id','filename','relpath','exif_date', \
-        'exif_date_digitized', 'mtime', \
+cols = ['photo_id','filename','relpath','folder_name', \
+        'exif_date', 'exif_date_digitized', \
+        'year','month','day','hour', 'minute', \
+        'mtime', \
         'ctime', 'size', \
         'exif_width', 'exif_height', 'PIL_width', \
         'PIL_height', 'caption', \
@@ -53,11 +56,28 @@ def seconds_to_str(seconds):
 
 empty_attrs = ['caption','tags','rating']
 
+month_map = {1:'Jan', 2:'Feb', 3:'Mar', 4:'Apr', \
+             5:'May', 6:'June', 7:'July', 8:'Aug', \
+             9:'Sept', 10:'Oct', 11:'Nov', 12:'Dec'}
+
+
 class photo(object):
+    def EXIF_date_to_attrs(self):
+        struct = time.strptime(self.exif_date, time_fmt)
+        self.year = struct.tm_year
+        self.month = month_map[struct.tm_mon]
+        self.day = struct.tm_mday
+        self.hour = struct.tm_hour
+        self.minute = struct.tm_min
+
+        
     def read_EXIF_data(self):
         tags = EXIF.process_file_from_path(self.pathin)
         for key, attr in EXIF_map.iteritems():
-            val = str(tags[key])
+            if tags.has_key(key):
+                val = str(tags[key])
+            else:
+                val = ""
             setattr(self, attr, val)
 
     def get_PIL_size(self):
@@ -69,6 +89,7 @@ class photo(object):
         self.mtime = seconds_to_str(os.path.getmtime(self.pathin))
         self.ctime = seconds_to_str(os.path.getctime(self.pathin))
         self.size = os.path.getsize(self.pathin)/1.0e6#convert to MB
+
         
     def find_relpath(self):
         self.basepath = None
@@ -81,7 +102,10 @@ class photo(object):
                 if (relpath[0] == '/') or (relpath[0] == '\\'):
                     relpath = relpath[1:]
                 self.relpath = relpath
+                junk, folder = os.path.split(relpath)
+                self.folder_name = folder
                 break
+
                 
     def __init__(self, pathin, get_EXIF_data=True, \
                  get_os_data=True, calc_md5=True, \
@@ -93,6 +117,7 @@ class photo(object):
         t2 = time.time()
         if get_EXIF_data:
             self.read_EXIF_data()
+            self.EXIF_date_to_attrs()
         t3 = time.time()
         if get_os_data:
             self.get_os_data()
@@ -234,14 +259,16 @@ class photo_db(spreadsheet.CSVSpreadSheet):
 
 if __name__ == '__main__':
     import file_finder
-    db_path = '/mnt/personal/pictures/Joshua_Ryan/photo_db.csv'
+    #db_path = '/mnt/personal/pictures/Joshua_Ryan/photo_db.csv'
     #photo_db_12_21_09__19_35_11.csv'
-    force = 0
+    db_path = 'photo_db.csv'
+    force = 1
     mydb = photo_db(db_path, force_new=force)
 #    folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/2009-12-17--12.48.31'
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/'
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2011/Mar_2011/Eli'
-    folder = '/mnt/personal/pictures/Joshua_Ryan/2011/Mar_2011/unsorted'
+    #folder = '/mnt/personal/pictures/Joshua_Ryan/2011/Mar_2011/unsorted'
+    folder = '/home/ryan/Pictures/'
     image_finder = file_finder.Image_Finder(folder)
     paths = image_finder.Find_All_Images()
     #paths = image_finder.Find_Images()
