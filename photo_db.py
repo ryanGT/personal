@@ -1,7 +1,7 @@
 from scipy import *
 import numpy
 import spreadsheet, EXIF, csv
-import os, time, md5sum, re, glob
+import os, time, md5sum, re, glob, pdb
 from PIL import Image
 #import odict
 
@@ -171,6 +171,20 @@ class photo_db(spreadsheet.CSVSpreadSheet):
             self.labels = cols
             for attr in cols:
                 setattr(self, attr, [])
+
+        self.convert_cols_to_int()
+
+
+    def convert_cols_to_int(self):
+        int_cols = ['photo_id','year','day','hour', 'minute', \
+                    'PIL_width', 'PIL_height','rating']
+        for col in int_cols:
+            if hasattr(self, col):
+                myvect = getattr(self, col)
+                myfloat = myvect.astype(float)
+                myint = myfloat.astype(int)
+                setattr(self, col, myint)
+
 
     def search_for_photo(self, photo):
         if photo.md5sum in self.md5sum:
