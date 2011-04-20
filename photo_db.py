@@ -10,6 +10,8 @@ from IPython.Debugger import Pdb
 time_fmt = '%Y:%m:%d %H:%M:%S'
 stamp_fmt = '%m_%d_%y__%H_%M_%S'
 
+import copy
+
 def time_stamp_to_seconds(stampstr):
     st = time.strptime(stampstr, stamp_fmt)
     seconds = time.mktime(st)
@@ -175,6 +177,71 @@ class photo_db(spreadsheet.CSVSpreadSheet):
         self.convert_cols_to_int()
 
 
+    def search_for_row_by_photo_id(self, photo_id):
+        if type(photo_id) != int:
+            photo_id = int(float(photo_id))
+        index_list = where(self.photo_id == photo_id)[0]
+        assert len(index_list) == 1, 'Did not find exactly one match for ' + str(photo_id) + \
+               ', index_list = ' + str(index_list)
+        return index_list[0]
+
+
+    def good_data(self, item, label):
+        out = True
+        if label == 'rating':
+            #print('rating = %s' % item)
+            if item is None:
+                out = False
+            elif float(item) == 0.0:
+                out = False
+        elif label == 'tags':
+            print('tag = %s' % item)
+        return out
+
+
+    def clean_zero_or_None(self, item):
+        if item is None:
+            item = ''
+        elif float(item) == 0.0:
+            item = ''
+        return item
+    
+
+    def clean_data(self, item, label):
+        if label in ['rating', 'tags']:
+            item = self.clean_zero_or_None(item)
+        return item
+        
+            
+
+    def map_data_to_alldata(self, data, labels, colmap):
+        #pdb.set_trace()
+        revmap = dict((value,key) for key, value in colmap.iteritems())
+        id_label = revmap['photo_id']
+        assert id_label in labels, 'labels must include %s and the id must be a column of data.' % id_label
+        id_ind = labels.index(id_label)
+        id_col = self.labels.index('photo_id')
+        colindmap = {}
+        for label in labels:
+            fulllabel = colmap[label]
+            ind = self.labels.index(fulllabel)
+            colindmap[label] = ind
+            
+            
+        for row in data:
+            photo_id = row[id_ind]
+            alldata_row_ind = self.search_for_row_by_photo_id(photo_id)
+            for item, label in zip(row, labels):
+                col = colindmap[label]
+                if col != id_col:
+                    item = self.clean_data(item, label)
+                    self.alldata[alldata_row_ind][col] = item
+            
+            
+            
+        
+
+
     def convert_cols_to_int(self):
         int_cols = ['photo_id','year','day','hour', 'minute', \
                     'PIL_width', 'PIL_height','rating']
@@ -275,17 +342,19 @@ if __name__ == '__main__':
     import file_finder
     #db_path = '/mnt/personal/pictures/Joshua_Ryan/photo_db.csv'
     #photo_db_12_21_09__19_35_11.csv'
-    db_path = 'photo_db.csv'
-    force = 1
+    folder = '/home/ryan/JoshuaRyan_on_AM2/'
+    db_name = 'photo_db.csv'
+    db_path = os.path.join(folder, db_name)
+    force = 0
     mydb = photo_db(db_path, force_new=force)
 #    folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/2009-12-17--12.48.31'
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/'
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2011/Mar_2011/Eli'
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2011/Mar_2011/unsorted'
-    folder = '/home/ryan/Pictures/'
-    image_finder = file_finder.Image_Finder(folder)
-    paths = image_finder.Find_All_Images()
-    #paths = image_finder.Find_Images()
-    photos = [photo(path) for path in paths]
-    mydb.add_photos(photos)
-    mydb.save()
+    ## folder = '/home/ryan/Pictures/'
+    ## image_finder = file_finder.Image_Finder(folder)
+    ## paths = image_finder.Find_All_Images()
+    ## #paths = image_finder.Find_Images()
+    ## photos = [photo(path) for path in paths]
+    ## mydb.add_photos(photos)
+    ## mydb.save()
