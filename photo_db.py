@@ -62,6 +62,8 @@ month_map = {1:'Jan', 2:'Feb', 3:'Mar', 4:'Apr', \
              5:'May', 6:'June', 7:'July', 8:'Aug', \
              9:'Sept', 10:'Oct', 11:'Nov', 12:'Dec'}
 
+#need to be able to create a photo from a row cut from a photo_db for
+#the deleted db.
 
 class photo(object):
     def EXIF_date_to_attrs(self):
@@ -109,34 +111,38 @@ class photo(object):
                 break
 
                 
-    def __init__(self, pathin, get_EXIF_data=True, \
+    def __init__(self, pathin=None, get_EXIF_data=True, \
                  get_os_data=True, calc_md5=True, \
-                 get_PIL_size=True, basepath=None):
-        t1 = time.time()
-        self.pathin = pathin
-        self.folder, self.filename = os.path.split(pathin)
-        self.find_relpath()
-        t2 = time.time()
-        if get_EXIF_data:
-            self.read_EXIF_data()
-            self.EXIF_date_to_attrs()
-        t3 = time.time()
-        if get_os_data:
-            self.get_os_data()
-        t4 = time.time()    
-        if get_PIL_size:
-            self.get_PIL_size()
-        t5 = time.time()
-        if calc_md5:
-            self.md5sum = md5sum.md5sum(self.pathin)
-        t6 = time.time()
-        for attr in empty_attrs:
-            setattr(self, attr, None)
-        t7 = time.time()
-##         for i in range(2,7):
-##             dt = 't%i-t%i' % (i, i-1)
-##             exec('curt='+dt)
-##             print(dt + '='+str(curt))
+                 get_PIL_size=True, basepath=None, dictin=None):
+        if dictin is not None:
+            for key, value in dictin.iteritems():
+                setattr(self, key, value)
+        else:
+            t1 = time.time()
+            self.pathin = pathin
+            self.folder, self.filename = os.path.split(pathin)
+            self.find_relpath()
+            t2 = time.time()
+            if get_EXIF_data:
+                self.read_EXIF_data()
+                self.EXIF_date_to_attrs()
+            t3 = time.time()
+            if get_os_data:
+                self.get_os_data()
+            t4 = time.time()    
+            if get_PIL_size:
+                self.get_PIL_size()
+            t5 = time.time()
+            if calc_md5:
+                self.md5sum = md5sum.md5sum(self.pathin)
+            t6 = time.time()
+            for attr in empty_attrs:
+                setattr(self, attr, None)
+            t7 = time.time()
+    ##         for i in range(2,7):
+    ##             dt = 't%i-t%i' % (i, i-1)
+    ##             exec('curt='+dt)
+    ##             print(dt + '='+str(curt))
 
     def torow(self, photo_id):
         rowout = ['%i' % photo_id]
@@ -161,6 +167,7 @@ class photo_db(spreadsheet.CSVSpreadSheet):
             self.folder, self.namein = os.path.split(pathin)
             
         spreadsheet.CSVSpreadSheet.__init__(self, pathin, \
+                                            colmap=colmap, \
                                             **kwargs)
         self.colmap = colmap
         self.next_id = 1
@@ -169,10 +176,17 @@ class photo_db(spreadsheet.CSVSpreadSheet):
             self.FindDataColumns()
             self.MapCols()
             self.next_id = int(self.photo_id.astype(float).max()) + 1
-        else:
+
+        elif (not hasattr(self, 'labels')) or \
+                 (self.labels == []) or \
+                 (self.labels is None):
+            #assume that if self.labels has been set, some sort of
+            #initiation has already been done.
             self.labels = cols
             for attr in cols:
                 setattr(self, attr, [])
+        else:
+            print('bypassing photo_db initialization')
 
         self.convert_cols_to_int()
 
@@ -185,6 +199,19 @@ class photo_db(spreadsheet.CSVSpreadSheet):
                ', index_list = ' + str(index_list)
         return index_list[0]
 
+
+    def update_attr(self, photo_id, attr, value):
+        assert attr != 'photo_id', 'You are not allowed to change the photo_id'
+        row = self.search_for_row_by_photo_id(photo_id)
+        vect = getattr(self, attr)
+        vect[row] = value
+
+
+    def copy_row_by_photo_id(self, photo_id):
+        row = self.search_for_row_by_photo_id(photo_id)
+        mycopy = copy.copy(self.alldata[row])
+        return mycopy
+        
 
     def good_data(self, item, label):
         out = True
@@ -215,7 +242,6 @@ class photo_db(spreadsheet.CSVSpreadSheet):
             
 
     def map_data_to_alldata(self, data, labels, colmap):
-        #pdb.set_trace()
         revmap = dict((value,key) for key, value in colmap.iteritems())
         id_label = revmap['photo_id']
         assert id_label in labels, 'labels must include %s and the id must be a column of data.' % id_label
@@ -248,12 +274,15 @@ class photo_db(spreadsheet.CSVSpreadSheet):
         for col in int_cols:
             if hasattr(self, col):
                 myvect = getattr(self, col)
+                if type(myvect) == list:
+                    myvect = array(myvect)
                 myfloat = myvect.astype(float)
                 myint = myfloat.astype(int)
                 setattr(self, col, myint)
 
 
     def search_for_photo(self, photo):
+        ind = None
         if photo.md5sum in self.md5sum:
             if type(self.md5sum) == numpy.ndarray:
                 ind = self.md5sum.tolist().index(photo.md5sum)
@@ -274,10 +303,11 @@ class photo_db(spreadsheet.CSVSpreadSheet):
             else:
                 ind = self.md5sum.index(photo.md5sum)
             return ind
+        return ind
         
     def add_photo(self, photo, verbosity=1, copy=False):
         ind = self.search_for_photo(photo)
-        if ind:
+        if ind is not None:
             if verbosity > 0:
                 print('photo already in dB:')
                 print('  md5sum: ' + str(photo.md5sum))
