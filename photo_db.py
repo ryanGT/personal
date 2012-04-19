@@ -436,14 +436,41 @@ if __name__ == '__main__':
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2007'
     
     #verifying that Silver HD photos are already in
-    folder = '/mnt/personal/from_SILVERHD/pictures/Joshua_Ryan/2007/ultrasounds'
+    #folder = '/mnt/personal/from_SILVERHD/pictures/Joshua_Ryan/2007/ultrasound'
+
+    root = '/mnt/personal/pictures/Joshua_Ryan/2008'
+
+    import rwkos
+    folder_names = rwkos.find_dirs(root)
+
+
+    #for name in folder_names[2:3]:
+    name = folder_names[6]#<-- stopped after index 6
+    folder = os.path.join(root, name)
     image_finder = file_finder.Image_Finder(folder)
     paths = image_finder.Find_All_Images()
-    ###paths = image_finder.Find_Images()
     photos = [photo(path) for path in paths]
     inds = [mydb.search_for_photo(photo) for photo in photos]
-    ## for photo in photos:
-    ##     photo.year=2007
 
-    ## mydb.add_photos(photos)
-    ## mydb.save()
+
+    bad_inds = []
+    for i, photo in enumerate(photos):
+        if not photo.exif_date:
+            bad_inds.append(i)
+            
+
+    add_them = 1
+    if add_them:
+        default_year = 2008
+        default_month = 'Jan'
+        exif_dates = []
+        for photo in photos:
+            exif_dates.append(photo.exif_date)
+            if not photo.exif_date:
+                photo.year = default_year
+                photo.month = default_month
+                photo.day = 0
+        
+
+        mydb.add_photos(photos)
+        mydb.save()
