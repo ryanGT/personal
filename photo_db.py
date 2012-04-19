@@ -15,6 +15,21 @@ def time_stamp_to_seconds(stampstr):
     seconds = time.mktime(st)
     return seconds
 
+def time_to_seconds2(time_str):
+    st = time.strptime(time_str, time_fmt)
+    seconds = time.mktime(st)
+    return seconds
+
+
+def find_earliest(time_str1, time_str2):
+    seconds1 = time_to_seconds2(time_str1)
+    seconds2 = time_to_seconds2(time_str2)
+    if seconds1 < seconds2:
+        return time_str1
+    else:
+        return time_str2
+    
+
 #make sure the more specific paths are higher in the list since
 #find_relpath will stop at the first match
 basepaths = ['/mnt/personal/pictures/Joshua_Ryan/', \
@@ -63,7 +78,14 @@ month_map = {1:'Jan', 2:'Feb', 3:'Mar', 4:'Apr', \
 
 class photo(object):
     def EXIF_date_to_attrs(self):
-        struct = time.strptime(self.exif_date, time_fmt)
+        try:
+            struct = time.strptime(self.exif_date, time_fmt)
+        except ValueError:
+            print('EXIF problem for %s' % self.pathin)
+            #Pdb().set_trace()
+            os_str = find_earliest(self.mtime, self.ctime)
+            print('using OS date/time: %s' % os_str)
+            struct = time.strptime(os_str, time_fmt)
         self.year = struct.tm_year
         self.month = month_map[struct.tm_mon]
         self.day = struct.tm_mday
@@ -117,11 +139,13 @@ class photo(object):
         t2 = time.time()
         if get_EXIF_data:
             self.read_EXIF_data()
-            self.EXIF_date_to_attrs()
         t3 = time.time()
         if get_os_data:
             self.get_os_data()
-        t4 = time.time()    
+        t4 = time.time()
+        if get_EXIF_data:
+            self.EXIF_date_to_attrs()#need os_data first in case EXIF
+                                     #date is missing
         if get_PIL_size:
             self.get_PIL_size()
         t5 = time.time()
@@ -268,10 +292,16 @@ if __name__ == '__main__':
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2009/Dec_2009/Santa_Hat_Pictures/'
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2011/Mar_2011/Eli'
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2011/Mar_2011/unsorted'
-    folder = '/home/ryan/Pictures/'
-    image_finder = file_finder.Image_Finder(folder)
-    paths = image_finder.Find_All_Images()
+    #folder = '/mnt/personal/pictures/Joshua_Ryan/2011/Mar_2011/'
+    #folder = '/mnt/personal/pictures/Joshua_Ryan/2011/'
+    #folder = '/home/ryan/Pictures/'
+    #image_finder = file_finder.Image_Finder(folder)
+    #paths = image_finder.Find_All_Images()
     #paths = image_finder.Find_Images()
-    photos = [photo(path) for path in paths]
-    mydb.add_photos(photos)
-    mydb.save()
+    #photos = [photo(path) for path in paths]
+    #mydb.add_photos(photos)
+    #mydb.save()
+
+    path = '/mnt/personal/pictures/Joshua_Ryan/missy_exif_test.jpg'
+    myphoto = photo(path)
+    
