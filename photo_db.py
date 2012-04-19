@@ -140,27 +140,27 @@ class photo(object):
             for key, value in dictin.iteritems():
                 setattr(self, key, value)
         else:
-            t1 = time.time()
+            #t1 = time.time()
             self.pathin = pathin
             self.folder, self.filename = os.path.split(pathin)
             self.find_relpath()
-            t2 = time.time()
+            #t2 = time.time()
+            if get_os_data:
+                self.get_os_data()
+            #t3 = time.time()                
             if get_EXIF_data:
                 self.read_EXIF_data()
                 self.EXIF_date_to_attrs()
-            t3 = time.time()
-            if get_os_data:
-                self.get_os_data()
-            t4 = time.time()    
+            #t4 = time.time()    
             if get_PIL_size:
                 self.get_PIL_size()
-            t5 = time.time()
+            #t5 = time.time()
             if calc_md5:
                 self.md5sum = md5sum.md5sum(self.pathin)
-            t6 = time.time()
+            #t6 = time.time()
             for attr in empty_attrs:
                 setattr(self, attr, None)
-            t7 = time.time()
+            #t7 = time.time()
     ##         for i in range(2,7):
     ##             dt = 't%i-t%i' % (i, i-1)
     ##             exec('curt='+dt)
@@ -394,7 +394,15 @@ if __name__ == '__main__':
     import file_finder
     #db_path = '/mnt/personal/pictures/Joshua_Ryan/photo_db.csv'
     #photo_db_12_21_09__19_35_11.csv'
-    folder = '/home/ryan/JoshuaRyan_on_AM2/'
+    import socket
+
+    hostname = socket.gethostname()
+
+    if hostname == 'AM2':
+        folder = '/home/ryan/git/personal/'
+    else:
+        folder = '/home/ryan/JoshuaRyan_on_AM2/'
+        
     db_name = 'photo_db.csv'
     db_path = os.path.join(folder, db_name)
     force = 0
@@ -421,5 +429,17 @@ if __name__ == '__main__':
     ## paths = image_finder.Find_All_Images()
     ## #paths = image_finder.Find_Images()
     ## photos = [photo(path) for path in paths]
+    ## mydb.add_photos(photos)
+    ## mydb.save()
+
+    #folder = '/mnt/personal/pictures/Joshua_Ryan/2007'
+    folder = '/mnt/personal/pictures/Joshua_Ryan/2007'
+    image_finder = file_finder.Image_Finder(folder)
+    paths = image_finder.Find_All_Images()
+    ###paths = image_finder.Find_Images()
+    photos = [photo(path) for path in paths]
+    ## for photo in photos:
+    ##     photo.year=2007
+
     ## mydb.add_photos(photos)
     ## mydb.save()
