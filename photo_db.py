@@ -433,11 +433,15 @@ if __name__ == '__main__':
     ## mydb.save()
 
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2007'
-    folder = '/mnt/personal/pictures/Joshua_Ryan/2007'
+    #folder = '/mnt/personal/pictures/Joshua_Ryan/2007'
+    
+    #verifying that Silver HD photos are already in
+    folder = '/mnt/personal/from_SILVERHD/pictures/Joshua_Ryan/2007/ultrasounds'
     image_finder = file_finder.Image_Finder(folder)
     paths = image_finder.Find_All_Images()
     ###paths = image_finder.Find_Images()
     photos = [photo(path) for path in paths]
+    inds = [mydb.search_for_photo(photo) for photo in photos]
     ## for photo in photos:
     ##     photo.year=2007
 
