@@ -391,6 +391,51 @@ class photo_db(spreadsheet.CSVSpreadSheet):
                 name = self.namein
             pathout = os.path.join(self.folder, name)
         self.WriteAllDataCSV(pathout, append=False)
+
+
+
+class folder_checker(object):
+    """This class takes a top level folder path as an input and checks
+    to see which of the photos in that folder (and all of its
+    subfolders) are in the database."""
+    def __init__(self, topfolder, database):
+        self.topfolder = topfolder
+        self.database = database
+        self.image_finder = file_finder.Image_Finder(self.topfolder)
+
+
+    def find_all_images(self):
+        self.image_paths = image_finder.Find_All_Images()
+
+
+    def create_photo_list(self):
+        self.photos = [photo(path) for path in self.image_paths]
+
+
+    def search_db_for_photos(self):
+        N = len(self.image_paths)
+        self.boolvect = numpy.zeros(N)
+        self.inds = []
+        self.photos_in = []
+        self.photos_not_in = []
+        for i, photo in enumerate(self.photos):
+            ind = self.database.search_for_photo(photo)
+            self.inds.append(ind)
+            if ind is None:
+                self.boolvect[i] = 0#redundant, this should already be 0
+                self.photos_not_in.append(photo)
+            else:
+                self.boolvect[i] = 1
+                self.photos_in.append(photo)
+                
+        self.num_in = len(self.photos_in)
+        self.num_not_in = len(self.photos_not_in)
+
+
+    def run(self):
+        self.find_all_images()
+        self.create_photo_list()
+        self.search_db_for_photos()
         
 
 if __name__ == '__main__':
@@ -482,23 +527,23 @@ if __name__ == '__main__':
     image_finder = file_finder.Image_Finder(folder)
     paths = image_finder.Find_All_Images()
     photos = [photo(path) for path in paths]
-    inds = [mydb.search_for_photo(photo) for photo in photos]
+    inds = [mydb.search_for_photo(photo_i) for photo_i in photos]
 
 
     bad_inds = []
-    for i, photo in enumerate(photos):
-        if not photo.exif_date:
+    for i, photo_i in enumerate(photos):
+        if not photo_i.exif_date:
             bad_inds.append(i)
             
 
     if add_them:
         exif_dates = []
-        for photo in photos:
-            exif_dates.append(photo.exif_date)
-            if not photo.exif_date:
-                photo.year = default_year
-                photo.month = default_month
-                photo.day = 0
+        for photo_i in photos:
+            exif_dates.append(photo_i.exif_date)
+            if not photo_i.exif_date:
+                photo_i.year = default_year
+                photo_i.month = default_month
+                photo_i.day = 0
         
 
         mydb.add_photos(photos)
