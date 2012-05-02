@@ -41,7 +41,8 @@ basepaths = ['/mnt/personal/pictures/Joshua_Ryan/', \
 EXIF_map = {'EXIF ExifImageWidth':'exif_width', \
             'EXIF ExifImageLength':'exif_height', \
             'EXIF DateTimeOriginal':'exif_date', \
-            'EXIF DateTimeDigitized':'exif_date_digitized'
+            'EXIF DateTimeDigitized':'exif_date_digitized', \
+            'Image Model':'exif_camera', \
             }
 
 ## col_map = odict.OrderedDict([('filename','filename'), \
@@ -76,6 +77,8 @@ empty_attrs = ['caption','tags','rating']
 month_map = {1:'Jan', 2:'Feb', 3:'Mar', 4:'Apr', \
              5:'May', 6:'June', 7:'July', 8:'Aug', \
              9:'Sept', 10:'Oct', 11:'Nov', 12:'Dec'}
+
+inverse_month_map = dict((val,key) for key, val in month_map.iteritems())
 
 #need to be able to create a photo from a row cut from a photo_db for
 #the deleted db.
@@ -444,8 +447,37 @@ if __name__ == '__main__':
     folder_names = rwkos.find_dirs(root)
 
 
+    from optparse import OptionParser
+
+    usage = 'usage: %prog [options]'
+    parser = OptionParser(usage)
+
+
+    parser.add_option("-i", "--ind", dest="ind", \
+                      help="folder index to add to the db", \
+                      default=-1, type=int)
+
+    parser.add_option("-m", "--month", dest="month", \
+                         help="default month for bad EXIF date cases", \
+                         default="", type=str)
+
+    parser.add_option("-y", "--year", dest="year", \
+                         help="default year for bad EXIF date cases", \
+                         default=2008, type=int)
+
+    parser.add_option("-a", action="store_true", dest="add_them", \
+                      help="add photos to the db")
+    parser.set_defaults(add_them=False)
+    
+    (options, args) = parser.parse_args()
+
+    ind = options.ind
+    default_month = options.month
+    default_year = options.year
+    add_them = options.add_them
+
     #for name in folder_names[2:3]:
-    name = folder_names[6]#<-- stopped after index 6
+    name = folder_names[ind]#<-- stopped after index 6
     folder = os.path.join(root, name)
     image_finder = file_finder.Image_Finder(folder)
     paths = image_finder.Find_All_Images()
@@ -459,10 +491,7 @@ if __name__ == '__main__':
             bad_inds.append(i)
             
 
-    add_them = 1
     if add_them:
-        default_year = 2008
-        default_month = 'Jan'
         exif_dates = []
         for photo in photos:
             exif_dates.append(photo.exif_date)
