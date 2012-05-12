@@ -7,6 +7,7 @@ from PIL import Image
 
 from IPython.Debugger import Pdb
 
+
 time_fmt = '%Y:%m:%d %H:%M:%S'
 stamp_fmt = '%m_%d_%y__%H_%M_%S'
 
@@ -405,7 +406,7 @@ class folder_checker(object):
 
 
     def find_all_images(self):
-        self.image_paths = image_finder.Find_All_Images()
+        self.image_paths = self.image_finder.Find_All_Images()
 
 
     def create_photo_list(self):
@@ -432,11 +433,26 @@ class folder_checker(object):
         self.num_not_in = len(self.photos_not_in)
 
 
-    def run(self):
+    def print_results(self):
+        print('')
+        print('='*20)
+        print('topfolder = ' + self.topfolder)
+        print('# already in = ' + str(self.num_in))
+        print('# not in = ' + str(self.num_not_in))
+
+
+    def print_not_in(self):
+        for i, photo in enumerate(self.photos_not_in):
+            print('%i: %s' % (i,photo.pathin))
+        
+
+    def run(self, verbosity=1):
         self.find_all_images()
         self.create_photo_list()
         self.search_db_for_photos()
-        
+        if verbosity > 0:
+            self.print_results()
+            
 
 if __name__ == '__main__':
     import file_finder
@@ -486,7 +502,9 @@ if __name__ == '__main__':
     #verifying that Silver HD photos are already in
     #folder = '/mnt/personal/from_SILVERHD/pictures/Joshua_Ryan/2007/ultrasound'
 
-    root = '/mnt/personal/pictures/Joshua_Ryan/2008'
+    #root = '/mnt/personal/pictures/Joshua_Ryan/2008'
+
+    root = '/mnt/personal/from_SILVERHD/pictures/Joshua_Ryan/2008'
 
     import rwkos
     folder_names = rwkos.find_dirs(root)
@@ -521,30 +539,38 @@ if __name__ == '__main__':
     default_year = options.year
     add_them = options.add_them
 
-    #for name in folder_names[2:3]:
-    name = folder_names[ind]#<-- stopped after index 6
-    folder = os.path.join(root, name)
-    image_finder = file_finder.Image_Finder(folder)
-    paths = image_finder.Find_All_Images()
-    photos = [photo(path) for path in paths]
-    inds = [mydb.search_for_photo(photo_i) for photo_i in photos]
+    ## #Adding code
+    ## #for name in folder_names[2:3]:
+    ## name = folder_names[ind]#<-- stopped after index 6
+    ## folder = os.path.join(root, name)
+    ## image_finder = file_finder.Image_Finder(folder)
+    ## paths = image_finder.Find_All_Images()
+    ## photos = [photo(path) for path in paths]
+    ## inds = [mydb.search_for_photo(photo_i) for photo_i in photos]
 
 
-    bad_inds = []
-    for i, photo_i in enumerate(photos):
-        if not photo_i.exif_date:
-            bad_inds.append(i)
+    ## bad_inds = []
+    ## for i, photo_i in enumerate(photos):
+    ##     if not photo_i.exif_date:
+    ##         bad_inds.append(i)
             
 
-    if add_them:
-        exif_dates = []
-        for photo_i in photos:
-            exif_dates.append(photo_i.exif_date)
-            if not photo_i.exif_date:
-                photo_i.year = default_year
-                photo_i.month = default_month
-                photo_i.day = 0
+    ## if add_them:
+    ##     exif_dates = []
+    ##     for photo_i in photos:
+    ##         exif_dates.append(photo_i.exif_date)
+    ##         if not photo_i.exif_date:
+    ##             photo_i.year = default_year
+    ##             photo_i.month = default_month
+    ##             photo_i.day = 0
         
 
-        mydb.add_photos(photos)
-        mydb.save()
+    ##     mydb.add_photos(photos)
+    ##     mydb.save()
+
+
+    ## # Checking code
+    name = folder_names[ind]#<-- stopped after index 6
+    folder = os.path.join(root, name)
+    mychecker = folder_checker(folder, mydb)
+    mychecker.run()
