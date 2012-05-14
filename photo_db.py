@@ -5,8 +5,8 @@ import os, time, md5sum, re, glob, pdb
 from PIL import Image
 #import odict
 
-from IPython.Debugger import Pdb
-
+#from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 time_fmt = '%Y:%m:%d %H:%M:%S'
 stamp_fmt = '%m_%d_%y__%H_%M_%S'
@@ -58,7 +58,7 @@ cols = ['photo_id','filename','relpath','folder_name', \
         'exif_width', 'exif_height', 'PIL_width', \
         'PIL_height', 'caption', \
         'tags','rating',\
-        'md5sum']
+        'md5sum','exif_camera']
 
 colmap = dict(zip(cols, cols))
 
@@ -226,11 +226,23 @@ class photo_db(spreadsheet.CSVSpreadSheet):
         return index_list[0]
 
 
-    def update_attr(self, photo_id, attr, value):
+    def update_alldata(self, photo_id, attr, value):
+        #in order for this to work correctly, you need to find the correct
+        #row and column of self.alldata where value should be stored.
+        alldata_row_ind = self.search_for_row_by_photo_id(photo_id)
+        col_ind = self.labels.index(attr)
+        self.alldata[alldata_row_ind][col_ind] = value
+        
+
+    def update_attr(self, photo_id, attr, value, update_alldata=True):
+        #note that this method does not change self.alldata, so things
+        #don't actually get saved
         assert attr != 'photo_id', 'You are not allowed to change the photo_id'
         row = self.search_for_row_by_photo_id(photo_id)
         vect = getattr(self, attr)
         vect[row] = value
+        if update_alldata:
+            self.update_alldata(photo_id, attr, value)
 
 
     def copy_row_by_photo_id(self, photo_id):
@@ -455,6 +467,36 @@ class folder_checker(object):
             
 
 if __name__ == '__main__':
+    ###########################################
+    #
+    # Photo DB to do list:
+    #
+    # - add a column to the database for camera make
+    #
+    #   - I think this is done as long as it also updates
+    #     correctly when new pictures are added
+    #
+    # - rename and add 0's to the early D7000 pictures
+    # - add the rest of 2008 pictures to the DB
+    #
+    #   - create and checker_and_adder subclass of folder_checker
+    #     that has a default month and year property and a method to add the
+    #     photos that are not in the DB to the DB
+    #
+    # - delete 2008 pictures from SILVERHD folder
+    # - renumber D60 pictures with odometer based on dates
+    # - create GUI for adding folders to the DB
+    # - crate a means for generating an HTML report of
+    #   pictures not in vs. in the database
+    # - add all remaining Joshua_Ryan pictures to the database
+    #
+    #   - create a way to verify that an entire toplevel folder is in the DB
+    #     (i.e. all of 2008)
+    #
+    # - add pictures not in Joshua_Ryan to the DB (copying or
+    #   moving as necessary)
+    #
+    ###########################################
     import file_finder
     #db_path = '/mnt/personal/pictures/Joshua_Ryan/photo_db.csv'
     #photo_db_12_21_09__19_35_11.csv'
@@ -504,11 +546,7 @@ if __name__ == '__main__':
 
     #root = '/mnt/personal/pictures/Joshua_Ryan/2008'
 
-    root = '/mnt/personal/from_SILVERHD/pictures/Joshua_Ryan/2008'
-
     import rwkos
-    folder_names = rwkos.find_dirs(root)
-
 
     from optparse import OptionParser
 
@@ -570,7 +608,27 @@ if __name__ == '__main__':
 
 
     ## # Checking code
-    name = folder_names[ind]#<-- stopped after index 6
-    folder = os.path.join(root, name)
-    mychecker = folder_checker(folder, mydb)
-    mychecker.run()
+    # Verifying which SILVERHD folders are already in the DB
+    ## root = '/mnt/personal/from_SILVERHD/pictures/Joshua_Ryan/2008'
+    ## folder_names = rwkos.find_dirs(root)
+    ## name = folder_names[ind]
+    ## folder = os.path.join(root, name)
+    ## mychecker = folder_checker(folder, mydb)
+    ## mychecker.run()
+
+
+    ## Adding the exif_camera column
+    # I think this is done
+    ## root = '/mnt/personal/pictures/Joshua_Ryan/'
+
+    ## for ind in range(5000,5642):
+    ##     rp = mydb.relpath[ind]
+    ##     photofolder = os.path.join(root, rp)
+    ##     fn = mydb.filename[ind]
+    ##     photopath = os.path.join(photofolder, fn)
+    ##     cur_photo = photo(photopath)
+    ##     photo_id = mydb.photo_id[ind]
+    ##     mydb.update_attr(photo_id, 'exif_camera', cur_photo.exif_camera)
+
+
+    ## mydb.save()
