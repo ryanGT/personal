@@ -1,9 +1,10 @@
 from scipy import *
 import numpy
-import spreadsheet, EXIF, csv
+import spreadsheet, EXIF, csv, txt_mixin
 import os, time, md5sum, re, glob, pdb
 from PIL import Image
 #import odict
+import file_finder
 
 #from IPython.Debugger import Pdb
 from IPython.core.debugger import Pdb
@@ -458,6 +459,58 @@ class folder_checker(object):
             print('%i: %s' % (i,photo.pathin))
         
 
+
+    def _build_html_header(self, title='Photos not in the database'):
+        self.html_header = ['<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">']
+        out = self.html_header.append
+        out('<html>')
+        out('<head>')
+        out('<style type="text/css">')
+        out('img {')
+        out('    border:2px;')
+        out('    margin:10px;')
+        out('     margin-bottom:2px;')
+        out('    }')
+        out('')
+        out('img.h90{')
+        out('    height:90%;')
+        out('    } ')
+        out('img.w95{')
+        out('    width:95%;')
+        out('    } ')
+        out('</style>')
+        out('<title>%s</title>' % title)
+        out('</head>')
+        out('<body>')
+        out('<h1>%s</h1>' % title)
+        out('<TABLE>')
+
+
+    def html_one_photo(self, photo_in, subfolder='900by600'):
+        folder, name = os.path.split(photo_in.pathin)
+        screensize_folder = os.path.join(folder, subfolder)
+        fullpath = os.path.join(screensize_folder, name)
+        out = self.html.append
+        out('<TR align=center>')
+        out('        <TD>')
+        out('<img src="%s">' % fullpath)
+        out('        </TD>')
+        out('</TR>')
+        out('')
+
+        
+    def html_report_not_in(self, filename):
+        self._build_html_header()
+        self.html = self.html_header
+
+        for photo_i in self.photos_not_in:
+            self.html_one_photo(photo_i)
+
+        self.html.append('</TABLE>')
+        self.html.append('</html>')
+        txt_mixin.dump(filename, self.html)
+
+        
     def run(self, verbosity=1):
         self.find_all_images()
         self.create_photo_list()
@@ -466,24 +519,41 @@ class folder_checker(object):
             self.print_results()
             
 
+class folder_checker_and_adder(folder_checker):
+    """This class takes a top level folder path as an input and checks
+    to see which of the photos in that folder (and all of its
+    subfolders) are in the database.  You can then add the photos not
+    in the database to the database."""
+    def __init__(self, topfolder, database, default_year, default_month):
+        folder_checker.__init__(self, topfolder, database)
+        self.default_year = default_year
+        self.default_month = default_month
+
+
+
+    def add_photos_to_db(self):
+        exif_dates = []
+        for photo_i in self.photos_not_in:
+            exif_dates.append(photo_i.exif_date)
+            if not photo_i.exif_date:
+                photo_i.year = self.default_year
+                photo_i.month = self.default_month
+                photo_i.day = 0        
+
+        self.exif_dates = exif_dates
+        self.database.add_photos(self.photos_not_in)
+        self.database.save()
+
+    def check(self):
+        folder_checker.run(self)
+       
+
 if __name__ == '__main__':
     ###########################################
     #
     # Photo DB to do list:
     #
-    # - add a column to the database for camera make
-    #
-    #   - I think this is done as long as it also updates
-    #     correctly when new pictures are added
-    #
     # - rename and add 0's to the early D7000 pictures
-    # - add the rest of 2008 pictures to the DB
-    #
-    #   - create and checker_and_adder subclass of folder_checker
-    #     that has a default month and year property and a method to add the
-    #     photos that are not in the DB to the DB
-    #
-    # - delete 2008 pictures from SILVERHD folder
     # - renumber D60 pictures with odometer based on dates
     # - create GUI for adding folders to the DB
     # - crate a means for generating an HTML report of
@@ -577,6 +647,32 @@ if __name__ == '__main__':
     default_year = options.year
     add_them = options.add_them
 
+    month_data = loadtxt('2008_months.csv',delimiter=',',dtype=str)
+    month_dict = dict(zip(month_data[:,0],month_data[:,1]))
+
+
+    ## # New adding code
+    ## root = '/mnt/personal/pictures/Joshua_Ryan/2008'
+    ## folder_names = rwkos.find_dirs(root)
+    ## name = folder_names[ind]
+    ## folder = os.path.join(root, name)
+
+    ## if not default_month:
+    ##     default_month = month_dict[name]
+
+    ## mychecker = folder_checker_and_adder(folder, mydb, \
+    ##                                      default_year=default_year, \
+    ##                                      default_month=default_month)
+    ## mychecker.check()
+
+        
+    ## if add_them:
+    ##     if mychecker.num_not_in > 0:
+    ##         total = mychecker.num_not_in + mychecker.num_in
+    ##         p = mychecker.num_not_in/total
+    ##         if p > 0.9:
+    ##             mychecker.add_photos_to_db() 
+
     ## #Adding code
     ## #for name in folder_names[2:3]:
     ## name = folder_names[ind]#<-- stopped after index 6
@@ -608,13 +704,13 @@ if __name__ == '__main__':
 
 
     ## # Checking code
-    # Verifying which SILVERHD folders are already in the DB
-    ## root = '/mnt/personal/from_SILVERHD/pictures/Joshua_Ryan/2008'
-    ## folder_names = rwkos.find_dirs(root)
-    ## name = folder_names[ind]
-    ## folder = os.path.join(root, name)
-    ## mychecker = folder_checker(folder, mydb)
-    ## mychecker.run()
+    ## # Verifying which SILVERHD folders are already in the DB
+    root = '/mnt/personal/from_SILVERHD/pictures/Joshua_Ryan/2008'
+    folder_names = rwkos.find_dirs(root)
+    name = folder_names[ind]
+    folder = os.path.join(root, name)
+    mychecker = folder_checker(folder, mydb)
+    mychecker.run()
 
 
     ## Adding the exif_camera column
