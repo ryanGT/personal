@@ -6,7 +6,6 @@ from PIL import Image
 #import odict
 import file_finder
 
-#from IPython.Debugger import Pdb
 from IPython.core.debugger import Pdb
 
 time_fmt = '%Y:%m:%d %H:%M:%S'
@@ -32,7 +31,7 @@ def find_earliest(time_str1, time_str2):
         return time_str1
     else:
         return time_str2
-    
+
 
 #make sure the more specific paths are higher in the list since
 #find_relpath will stop at the first match
@@ -101,7 +100,7 @@ class photo(object):
         self.hour = struct.tm_hour
         self.minute = struct.tm_min
 
-        
+
     def read_EXIF_data(self):
         tags = EXIF.process_file_from_path(self.pathin)
         for key, attr in EXIF_map.iteritems():
@@ -114,14 +113,14 @@ class photo(object):
     def get_PIL_size(self):
         img = Image.open(self.pathin)
         self.PIL_width, self.PIL_height = img.size
-        
+
 
     def get_os_data(self):
         self.mtime = seconds_to_str(os.path.getmtime(self.pathin))
         self.ctime = seconds_to_str(os.path.getctime(self.pathin))
         self.size = os.path.getsize(self.pathin)/1.0e6#convert to MB
 
-        
+
     def find_relpath(self):
         self.basepath = None
         self.relpath = None
@@ -137,7 +136,7 @@ class photo(object):
                 self.folder_name = folder
                 break
 
-                
+
     def __init__(self, pathin=None, get_EXIF_data=True, \
                  get_os_data=True, calc_md5=True, \
                  get_PIL_size=True, basepath=None, dictin=None):
@@ -152,11 +151,11 @@ class photo(object):
             #t2 = time.time()
             if get_os_data:
                 self.get_os_data()
-            #t3 = time.time()                
+            #t3 = time.time()
             if get_EXIF_data:
                 self.read_EXIF_data()
                 self.EXIF_date_to_attrs()
-            #t4 = time.time()    
+            #t4 = time.time()
             if get_PIL_size:
                 self.get_PIL_size()
             #t5 = time.time()
@@ -183,7 +182,7 @@ class photo(object):
                 else:
                     rowout.append(val)
         return rowout
-        
+
 class photo_db(spreadsheet.CSVSpreadSheet):
     def __init__(self, pathin, force_new=False, **kwargs):
         if os.path.isdir(pathin):
@@ -192,7 +191,7 @@ class photo_db(spreadsheet.CSVSpreadSheet):
             self.namein = None
         else:
             self.folder, self.namein = os.path.split(pathin)
-            
+
         spreadsheet.CSVSpreadSheet.__init__(self, pathin, \
                                             colmap=colmap, \
                                             **kwargs)
@@ -233,7 +232,7 @@ class photo_db(spreadsheet.CSVSpreadSheet):
         alldata_row_ind = self.search_for_row_by_photo_id(photo_id)
         col_ind = self.labels.index(attr)
         self.alldata[alldata_row_ind][col_ind] = value
-        
+
 
     def update_attr(self, photo_id, attr, value, update_alldata=True):
         #note that this method does not change self.alldata, so things
@@ -250,7 +249,7 @@ class photo_db(spreadsheet.CSVSpreadSheet):
         row = self.search_for_row_by_photo_id(photo_id)
         mycopy = copy.copy(self.alldata[row])
         return mycopy
-        
+
 
     def good_data(self, item, label):
         out = True
@@ -271,14 +270,14 @@ class photo_db(spreadsheet.CSVSpreadSheet):
         elif float(item) == 0.0:
             item = ''
         return item
-    
+
 
     def clean_data(self, item, label):
         if label in ['rating', 'tags']:
             item = self.clean_zero_or_None(item)
         return item
-        
-            
+
+
 
     def map_data_to_alldata(self, data, labels, colmap):
         revmap = dict((value,key) for key, value in colmap.iteritems())
@@ -291,8 +290,8 @@ class photo_db(spreadsheet.CSVSpreadSheet):
             fulllabel = colmap[label]
             ind = self.labels.index(fulllabel)
             colindmap[label] = ind
-            
-            
+
+
         for row in data:
             photo_id = row[id_ind]
             alldata_row_ind = self.search_for_row_by_photo_id(photo_id)
@@ -301,10 +300,10 @@ class photo_db(spreadsheet.CSVSpreadSheet):
                 if col != id_col:
                     item = self.clean_data(item, label)
                     self.alldata[alldata_row_ind][col] = item
-            
-            
-            
-        
+
+
+
+
 
 
     def convert_cols_to_int(self):
@@ -343,7 +342,7 @@ class photo_db(spreadsheet.CSVSpreadSheet):
                 ind = self.md5sum.index(photo.md5sum)
             return ind
         return ind
-        
+
     def add_photo(self, photo, verbosity=1, copy=False):
         ind = self.search_for_photo(photo)
         if ind is not None:
@@ -383,9 +382,9 @@ class photo_db(spreadsheet.CSVSpreadSheet):
         seconds = map(time_stamp_to_seconds, stamps)
         ind = numpy.argmax(seconds)
         return csvpaths[ind]
-            
 
-        
+
+
     def get_new_path(self, basename='photo_db'):
         st = time.localtime()
         time_str = time.strftime(stamp_fmt, st)
@@ -394,8 +393,8 @@ class photo_db(spreadsheet.CSVSpreadSheet):
         self.csvname = basename + time_str + '.csv'
         self.csvpath = os.path.join(self.folder, self.csvname)
         return self.csvpath
-        
-        
+
+
     def save(self, pathout=None):
         if pathout is None:
             #pathout = self.get_new_path()
@@ -441,7 +440,7 @@ class folder_checker(object):
             else:
                 self.boolvect[i] = 1
                 self.photos_in.append(photo)
-                
+
         self.num_in = len(self.photos_in)
         self.num_not_in = len(self.photos_not_in)
 
@@ -457,7 +456,7 @@ class folder_checker(object):
     def print_not_in(self):
         for i, photo in enumerate(self.photos_not_in):
             print('%i: %s' % (i,photo.pathin))
-        
+
 
 
     def _build_html_header(self, title='Photos not in the database'):
@@ -498,7 +497,7 @@ class folder_checker(object):
         out('</TR>')
         out('')
 
-        
+
     def html_report_not_in(self, filename):
         self._build_html_header()
         self.html = self.html_header
@@ -510,14 +509,14 @@ class folder_checker(object):
         self.html.append('</html>')
         txt_mixin.dump(filename, self.html)
 
-        
+
     def run(self, verbosity=1):
         self.find_all_images()
         self.create_photo_list()
         self.search_db_for_photos()
         if verbosity > 0:
             self.print_results()
-            
+
 
 class folder_checker_and_adder(folder_checker):
     """This class takes a top level folder path as an input and checks
@@ -538,7 +537,7 @@ class folder_checker_and_adder(folder_checker):
             if not photo_i.exif_date:
                 photo_i.year = self.default_year
                 photo_i.month = self.default_month
-                photo_i.day = 0        
+                photo_i.day = 0
 
         self.exif_dates = exif_dates
         self.database.add_photos(self.photos_not_in)
@@ -546,7 +545,7 @@ class folder_checker_and_adder(folder_checker):
 
     def check(self):
         folder_checker.run(self)
-       
+
 
 if __name__ == '__main__':
     ###########################################
@@ -578,7 +577,7 @@ if __name__ == '__main__':
         folder = '/home/ryan/git/personal/'
     else:
         folder = '/home/ryan/JoshuaRyan_on_AM2/'
-        
+
     db_name = 'photo_db.csv'
     db_path = os.path.join(folder, db_name)
     force = 0
@@ -599,7 +598,7 @@ if __name__ == '__main__':
 
     path = '/mnt/personal/pictures/Joshua_Ryan/missy_exif_test.jpg'
     myphoto = photo(path)
-    
+
     ## folder = '/home/ryan/Pictures/'
     ## image_finder = file_finder.Image_Finder(folder)
     ## paths = image_finder.Find_All_Images()
@@ -610,7 +609,7 @@ if __name__ == '__main__':
 
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2007'
     #folder = '/mnt/personal/pictures/Joshua_Ryan/2007'
-    
+
     #verifying that Silver HD photos are already in
     #folder = '/mnt/personal/from_SILVERHD/pictures/Joshua_Ryan/2007/ultrasound'
 
@@ -639,7 +638,7 @@ if __name__ == '__main__':
     parser.add_option("-a", action="store_true", dest="add_them", \
                       help="add photos to the db")
     parser.set_defaults(add_them=False)
-    
+
     (options, args) = parser.parse_args()
 
     ind = options.ind
@@ -665,13 +664,13 @@ if __name__ == '__main__':
     ##                                      default_month=default_month)
     ## mychecker.check()
 
-        
+
     ## if add_them:
     ##     if mychecker.num_not_in > 0:
     ##         total = mychecker.num_not_in + mychecker.num_in
     ##         p = mychecker.num_not_in/total
     ##         if p > 0.9:
-    ##             mychecker.add_photos_to_db() 
+    ##             mychecker.add_photos_to_db()
 
     ## #Adding code
     ## #for name in folder_names[2:3]:
@@ -687,7 +686,7 @@ if __name__ == '__main__':
     ## for i, photo_i in enumerate(photos):
     ##     if not photo_i.exif_date:
     ##         bad_inds.append(i)
-            
+
 
     ## if add_them:
     ##     exif_dates = []
@@ -697,7 +696,7 @@ if __name__ == '__main__':
     ##             photo_i.year = default_year
     ##             photo_i.month = default_month
     ##             photo_i.day = 0
-        
+
 
     ##     mydb.add_photos(photos)
     ##     mydb.save()
