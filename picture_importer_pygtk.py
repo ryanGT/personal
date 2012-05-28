@@ -25,16 +25,16 @@ def my_dir_chooser(pathin=None):
     if pathin is not None:
         dialog.set_current_folder(pathin)
 
-    filter = gtk.FileFilter()
-    filter.set_name("JPEG files")
-    filter.add_pattern("*.jpg")
-    dialog.add_filter(filter)
 
     filter = gtk.FileFilter()
     filter.set_name("All files")
     filter.add_pattern("*")
     dialog.add_filter(filter)
 
+    filter = gtk.FileFilter()
+    filter.set_name("JPEG files")
+    filter.add_pattern("*.jpg")
+    dialog.add_filter(filter)
 
     response = dialog.run()
     out = None
@@ -60,6 +60,17 @@ class picture_importer(rwkmisc.gui_that_saves):
         path = my_dir_chooser(startpath)
         if path is not None:
             self.path1.set_text(path)
+        #chooser.set_action(gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
+
+    def browse2(self, widget, data=None):
+        startpath = None
+        curpath = self.path2.get_text()
+        print('curpath = ' + curpath)
+        if curpath:
+            startpath = curpath
+        path = my_dir_chooser(startpath)
+        if path is not None:
+            self.path2.set_text(path)
         #chooser.set_action(gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
         
 
@@ -109,14 +120,48 @@ class picture_importer(rwkmisc.gui_that_saves):
         # function is defined above.
         self.button1.connect("clicked", self.browse1, None)
 
+        #dest browser
+        self.button2 = gtk.Button("browse")
+        self.path2 = gtk.Entry()
+        self.path2.set_size_request(entry_width,-1)
+        # When the button receives the "clicked" signal, it will call the
+        # function hello() passing it None as its argument.  The hello()
+        # function is defined above.
+        self.button2.connect("clicked", self.browse2, None)
+
+        
+        big_vbox = gtk.VBox(homogeneous=False)
+
+        #source label
+        source_label = gtk.Label('Source Directory')
+        hbox0 = gtk.HBox(homogeneous=False)
+        hbox0.pack_start(source_label,False)
+        big_vbox.pack_start(hbox0,False)
+
+        #source browser
         hbox1 = gtk.HBox(homogeneous=False)
         hbox1.pack_start(self.path1,False)
         hbox1.pack_start(self.button1,False)
-
-        big_vbox = gtk.VBox(homogeneous=False)
-
         big_vbox.pack_start(hbox1,False)
+        
+        #empty string spacer
+        spacer_label = gtk.Label('')
+        hbox2 = gtk.HBox(homogeneous=False)
+        hbox2.pack_start(spacer_label,False)
+        big_vbox.pack_start(hbox2,False)
 
+        #dest label
+        dest_label = gtk.Label('Destination Root Directory')
+        hbox3 = gtk.HBox(homogeneous=False)
+        hbox3.pack_start(dest_label,False)
+        big_vbox.pack_start(hbox3,False)
+
+        #dest browser
+        hbox4 = gtk.HBox(homogeneous=False)
+        hbox4.pack_start(self.path2,False)
+        hbox4.pack_start(self.button2,False)
+        big_vbox.pack_start(hbox4,False)
+        
         # This will cause the window to be destroyed by calling
         # gtk_widget_destroy(window) when "clicked".  Again, the destroy
         # signal could come from here, or the window manager.
@@ -134,6 +179,7 @@ class picture_importer(rwkmisc.gui_that_saves):
         #general and helpful way?
         self._initialize_saving()
         self.append_item('path1', self.path1.get_text, self.path1.set_text)
+        self.append_item('path2', self.path2.get_text, self.path2.set_text)
 
         if os.path.exists(settings_path):
             self.load(settings_path)
@@ -148,6 +194,26 @@ class picture_importer(rwkmisc.gui_that_saves):
         # All PyGTK applications must have a gtk.main(). Control ends here
         # and waits for an event to occur (like a key press or mouse event).
         gtk.main()
+
+
+###################################################
+###################################################
+
+#To do:
+
+# 1. I need a "Go" button and a method to actually move the files
+# 2. I need a progress bar widget for copying
+# 3. I need to check the status of the source directory beforing clicking Go
+#
+#    - does the source directory exist
+#    - how many pictures or movies are in the source directory
+#    - if the source is a memory card, are there pictures in
+#      other folders that that would be reasonable to import?
+# 4. I need to handle the exif date of raw photos and movies,
+#    possibly using neiboring file #'s
+
+###################################################
+###################################################
 
 # If the program is run directly or passed as an argument to the python
 # interpreter then create a HelloWorld instance and show it
