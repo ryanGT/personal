@@ -743,18 +743,27 @@ if __name__ == '__main__':
     elif case == 3:
         relfolder = '2011/Nov_2011/2011-11-05'
         absfolder = os.path.join(folder, relfolder)
+        t1 = time.time()
         mychecker = folder_checker_and_adder(absfolder, mydb, \
                                              default_year=2011, \
                                              default_month='Nov')
+        t2 = time.time()
         mychecker.check()
+        t3 = time.time()
         if mychecker.num_not_in > 0:
             total = mychecker.num_not_in + mychecker.num_in
             p = mychecker.num_not_in/total
             if p > 0.9:
                 mychecker.add_photos_to_db()
-
+        t4 = time.time()
         mydb.save(pathout='test_db_add_folder.csv')
+        t5 = time.time()
+        t_list = [t1,t2,t3,t4,t5]
 
+        for i in range(1,len(t_list)):
+            dt = t[i] - t[i-1]
+            j = i + 1
+            print('dt %i = %0.6g' % (j, dt))
 
 
 
