@@ -574,12 +574,22 @@ class folder_checker(object):
         txt_mixin.dump(filename, self.html)
 
 
-    def run(self, verbosity=1):
+    def run(self, verbosity=2):
+        t1 = time.time()
         self.find_all_images()
+        t2 = time.time()
         self.create_photo_list()
+        t3 = time.time()
         self.search_db_for_photos()
+        t4 = time.time()
         if verbosity > 0:
             self.print_results()
+        if verbosity > 1:
+            print('in checker.run')
+            print('t2-t1 = %0.6g' % (t2-t1))
+            print('t3-t2 = %0.6g' % (t3-t2))
+            print('t4-t3 = %0.6g' % (t4-t3))
+            
 
 
 class folder_checker_and_adder(folder_checker):
@@ -773,8 +783,7 @@ if __name__ == '__main__':
 
         for i in range(1,len(t_list)):
             dt = t_list[i] - t_list[i-1]
-            j = i + 1
-            print('dt %i = %0.6g' % (j, dt))
+            print('dt %i = %0.6g' % (i, dt))
 
 
 
