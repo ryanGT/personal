@@ -185,6 +185,27 @@ class photo(object):
 
 #class photo_db(spreadsheet.CSVSpreadSheet):
 class photo_db(object):
+    def _col_labels_to_attr_names(self):
+        """Replace any spaces or other illegal characters in the
+        column labels to make them into legal attr names."""
+        illegal_chars = [' ',':','/','\\']
+        attr_names = []
+        for label in self.labels:
+            attr = label
+            for char in illegal_chars:
+                attr = attr.replace(char, '_')
+            attr_names.append(attr)
+        self.attr_names = attr_names
+        
+
+    def map_cols_to_attr(self):
+        """make each column of self.data an attribute of the db
+        instance."""
+        for attr, label in zip(self.attr_names, self.labels):
+            col_ind = self.col_inds[label]
+            setattr(self, attr, self.data[:,col_ind])
+                    
+        
     def __init__(self, pathin, force_new=False, **kwargs):
         if os.path.isdir(pathin):
             self.folder = pathin
@@ -199,6 +220,9 @@ class photo_db(object):
         self.N_cols = len(self.labels)
         inds = range(self.N_cols)
         self.col_inds = dict(zip(self.labels, inds))
+        self._col_labels_to_attr_names()
+        self.map_cols_to_attr()
+        self.convert_cols_to_int()
         
         ## spreadsheet.CSVSpreadSheet.__init__(self, pathin, \
         ##                                     colmap=colmap, \
@@ -221,11 +245,7 @@ class photo_db(object):
         ##         setattr(self, attr, [])
         ## else:
         ##     print('bypassing photo_db initialization')
-
-
-
-        # --> fix me <--
-        #self.convert_cols_to_int()
+        ## self.convert_cols_to_int()
 
 
     def search_for_row_by_photo_id(self, photo_id):
@@ -312,6 +332,12 @@ class photo_db(object):
                     item = self.clean_data(item, label)
                     self.alldata[alldata_row_ind][col] = item
 
+    def _empty_strings_to_0(self, vect):
+        """Replace all empty strings with '0' so that they can be
+        converted to floats."""
+        inds = where(vect=='')[0]
+        vect[inds] = '0'
+        return vect
 
     def convert_cols_to_int(self):
         int_cols = ['photo_id','year','day','hour', 'minute', \
@@ -321,6 +347,7 @@ class photo_db(object):
                 myvect = getattr(self, col)
                 if type(myvect) == list:
                     myvect = array(myvect)
+                myvect = self._empty_strings_to_0(myvect)
                 myfloat = myvect.astype(float)
                 myint = myfloat.astype(int)
                 setattr(self, col, myint)
