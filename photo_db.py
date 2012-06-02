@@ -4,7 +4,7 @@ import spreadsheet, EXIF, csv, txt_mixin
 import os, time, md5sum, re, glob, pdb
 from PIL import Image
 #import odict
-import file_finder
+import file_finder, rwkmisc, misc_utils
 
 from IPython.core.debugger import Pdb
 
@@ -37,7 +37,8 @@ def find_earliest(time_str1, time_str2):
 #find_relpath will stop at the first match
 basepaths = ['/mnt/personal/pictures/Joshua_Ryan/', \
              '/mnt/personal/pictures/', \
-             '/home/ryan/Pictures/']
+             '/home/ryan/Pictures/', \
+             '/home/ryan/JoshuaRyan_on_AM2/']
 
 EXIF_map = {'EXIF ExifImageWidth':'exif_width', \
             'EXIF ExifImageLength':'exif_height', \
@@ -196,6 +197,10 @@ class photo_db(object):
                 attr = attr.replace(char, '_')
             attr_names.append(attr)
         self.attr_names = attr_names
+        self.label_attr_dict = dict(zip(self.attr_names, self.labels))
+        N = len(self.attr_names)
+        inds = range(N)
+        self.col_attr_dict = dict(zip(self.attr_names, inds))
         
 
     def map_cols_to_attr(self):
@@ -223,6 +228,7 @@ class photo_db(object):
         self._col_labels_to_attr_names()
         self.map_cols_to_attr()
         self.convert_cols_to_int()
+        self.next_id = self.photo_id.max() + 1
         
         ## spreadsheet.CSVSpreadSheet.__init__(self, pathin, \
         ##                                     colmap=colmap, \
@@ -257,28 +263,28 @@ class photo_db(object):
         return index_list[0]
 
 
-    def update_alldata(self, photo_id, attr, value):
+    def update_data(self, photo_id, attr, value):
         #in order for this to work correctly, you need to find the correct
         #row and column of self.alldata where value should be stored.
-        alldata_row_ind = self.search_for_row_by_photo_id(photo_id)
-        col_ind = self.labels.index(attr)
-        self.alldata[alldata_row_ind][col_ind] = value
+        data_row_ind = self.search_for_row_by_photo_id(photo_id)
+        col_ind = self.col_attr_dict[attr]
+        self.data[row_ind,col_ind] = value
 
 
-    def update_attr(self, photo_id, attr, value, update_alldata=True):
+    def update_attr(self, photo_id, attr, value, update_data=True):
         #note that this method does not change self.alldata, so things
         #don't actually get saved
         assert attr != 'photo_id', 'You are not allowed to change the photo_id'
         row = self.search_for_row_by_photo_id(photo_id)
         vect = getattr(self, attr)
         vect[row] = value
-        if update_alldata:
-            self.update_alldata(photo_id, attr, value)
+        if update_data:
+            self.update_data(photo_id, attr, value)
 
 
     def copy_row_by_photo_id(self, photo_id):
         row = self.search_for_row_by_photo_id(photo_id)
-        mycopy = copy.copy(self.alldata[row])
+        mycopy = copy.copy(self.data[row])
         return mycopy
 
 
@@ -311,6 +317,12 @@ class photo_db(object):
 
 
     def map_data_to_alldata(self, data, labels, colmap):
+        """This code is not called by this file.  I can understand why
+        it was needed in the spreadsheet based version of photo_db.  I
+        am not sure if it is still necessary.  I am not updating it
+        for now."""
+        print('I have not updated this method since switching to numpy from spreadsheer.')
+        raise NotImplementedError
         revmap = dict((value,key) for key, value in colmap.iteritems())
         id_label = revmap['photo_id']
         assert id_label in labels, 'labels must include %s and the id must be a column of data.' % id_label
@@ -339,6 +351,7 @@ class photo_db(object):
         vect[inds] = '0'
         return vect
 
+
     def convert_cols_to_int(self):
         int_cols = ['photo_id','year','day','hour', 'minute', \
                     'PIL_width', 'PIL_height','rating']
@@ -357,7 +370,7 @@ class photo_db(object):
         ind = None
         if photo.md5sum in self.md5sum:
             if type(self.md5sum) == numpy.ndarray:
-                ind = self.md5sum.tolist().index(photo.md5sum)
+                ind = where(self.md5sum == photo.md5sum)[0][0]
 ##                 t1 = time.time()
 ##                 index1 = where(self.md5sum==photo.md5sum)[0][0]
 ##                 t2 = time.time()
@@ -377,6 +390,7 @@ class photo_db(object):
             return ind
         return ind
 
+
     def add_photo(self, photo, verbosity=1, copy=False):
         ind = self.search_for_photo(photo)
         if ind is not None:
@@ -394,7 +408,10 @@ class photo_db(object):
                         vect = numpy.append(vect, val)
                     else:
                         vect.append(val)
-            self.alldata.append(photo.torow(self.next_id))
+            new_row = photo.torow(self.next_id)
+            new_row_2d = rwkmisc.rowwise(new_row)
+            new_data = numpy.append(self.data, new_row_2d, axis=0)
+            self.data = new_data
             self.next_id += 1
                 #setattr(self, attr, val)#shouldn't be necessary
 
@@ -429,7 +446,7 @@ class photo_db(object):
         return self.csvpath
 
 
-    def save(self, pathout=None):
+    def save(self, pathout=None, delim='\t'):
         if pathout is None:
             #pathout = self.get_new_path()
             if self.namein is None:
@@ -437,7 +454,9 @@ class photo_db(object):
             else:
                 name = self.namein
             pathout = os.path.join(self.folder, name)
-        self.WriteAllDataCSV(pathout, append=False)
+        #self.WriteAllDataCSV(pathout, append=False)
+        misc_utils.dump_matrix(pathout,self.data, self.labels, \
+                               fmt='%s', delim=delim)
 
 
 
@@ -608,16 +627,19 @@ if __name__ == '__main__':
     hostname = socket.gethostname()
 
     if hostname == 'AM2':
-        folder = '/home/ryan/git/personal/'
+        db_folder = '/home/ryan/git/personal/'
+        folder = '/mnt/personal/pictures/Joshua_Ryan/'
     else:
-        remote = 0
-        if remote:
+        db_remote = 0
+        if db_remote:
             folder = '/home/ryan/JoshuaRyan_on_AM2/'
+            db_folder = folder
         else:
-            folder = '/home/ryan/git/personal/'
+            db_folder = '/home/ryan/git/personal/'
+            folder = '/home/ryan/JoshuaRyan_on_AM2/'
 
     db_name = 'photo_db.csv'
-    db_path = os.path.join(folder, db_name)
+    db_path = os.path.join(db_folder, db_name)
     force = 0
     t1 = time.time()
     mydb = photo_db(db_path, force_new=force)
@@ -690,7 +712,61 @@ if __name__ == '__main__':
     month_data = loadtxt('2008_months.csv',delimiter=',',dtype=str)
     month_dict = dict(zip(month_data[:,0],month_data[:,1]))
 
+    ##############################################
+    #
+    # Tests for numpy stuff
+    #
+    ##############################################
+    case = 3
 
+    if case == 1:
+        #search for one photo that should already be in
+        relfolder = '2008/Joshua_Hospital/2008-01-23--17.16.51'
+        filename = 'img_0280.jpg'
+        relpath = os.path.join(relfolder, filename)
+        path = os.path.join(folder, relpath)
+        myphoto = photo(path)
+        ind = mydb.search_for_photo(myphoto)
+        assert ind is not None, "failed to find %s in db" % path
+        print('ind = ' + str(ind))
+
+    elif case == 2:
+        relfolder = '2011/Nov_2011/2011-11-05'
+        onefile = 'DSC_0916.JPG'
+        relpath = os.path.join(relfolder, onefile)
+        path = os.path.join(folder, relpath)
+        myphoto = photo(path)
+        ind = mydb.search_for_photo(myphoto)
+        mydb.add_photo(myphoto)
+        mydb.save(pathout='test_db_add_one.csv')
+
+    elif case == 3:
+        relfolder = '2011/Nov_2011/2011-11-05'
+        absfolder = os.path.join(folder, relfolder)
+        mychecker = folder_checker_and_adder(absfolder, mydb, \
+                                             default_year=2011, \
+                                             default_month='Nov')
+        mychecker.check()
+        if mychecker.num_not_in > 0:
+            total = mychecker.num_not_in + mychecker.num_in
+            p = mychecker.num_not_in/total
+            if p > 0.9:
+                mychecker.add_photos_to_db()
+
+        mydb.save(pathout='test_db_add_folder.csv')
+
+
+
+
+
+
+
+    ##############################################
+    #
+    # End numpy tests
+    #
+    ##############################################
+    
     ## # New adding code
     ## root = '/mnt/personal/pictures/Joshua_Ryan/2008'
     ## folder_names = rwkos.find_dirs(root)
