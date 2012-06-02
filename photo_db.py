@@ -210,7 +210,17 @@ class photo_db(object):
             col_ind = self.col_inds[label]
             setattr(self, attr, self.data[:,col_ind])
                     
-        
+
+    def _sniff_delimiter(self, pathin):
+        f = open(pathin,'r')
+        first_row = f.readline()
+        delim = None
+        if first_row.find('\t') > -1:
+            delim = '\t'
+        elif first_row.find(',') > -1:
+            delim = ','
+        return delim
+
     def __init__(self, pathin, force_new=False, **kwargs):
         if os.path.isdir(pathin):
             self.folder = pathin
@@ -219,7 +229,8 @@ class photo_db(object):
         else:
             self.folder, self.namein = os.path.split(pathin)
 
-        data = loadtxt(pathin,dtype=str,delimiter=',')
+        delim = self._sniff_delimiter(pathin)
+        data = loadtxt(pathin,dtype=str,delimiter=delim)
         self.labels = data[0,:]
         self.data = data[1:,:]
         self.N_cols = len(self.labels)
