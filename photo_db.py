@@ -740,9 +740,9 @@ if __name__ == '__main__':
     # Tests for numpy stuff
     #
     ##############################################
-    case = 3
+    test_case = 0
 
-    if case == 1:
+    if test_case == 1:
         #search for one photo that should already be in
         relfolder = '2008/Joshua_Hospital/2008-01-23--17.16.51'
         filename = 'img_0280.jpg'
@@ -753,7 +753,7 @@ if __name__ == '__main__':
         assert ind is not None, "failed to find %s in db" % path
         print('ind = ' + str(ind))
 
-    elif case == 2:
+    elif test_case == 2:
         relfolder = '2011/Nov_2011/2011-11-05'
         onefile = 'DSC_0916.JPG'
         relpath = os.path.join(relfolder, onefile)
@@ -763,7 +763,7 @@ if __name__ == '__main__':
         mydb.add_photo(myphoto)
         mydb.save(pathout='test_db_add_one.csv')
 
-    elif case == 3:
+    elif test_case == 3:
         relfolder = '2011/Nov_2011/2011-11-05'
         absfolder = os.path.join(folder, relfolder)
         t1 = time.time()
@@ -797,7 +797,16 @@ if __name__ == '__main__':
     # End numpy tests
     #
     ##############################################
-    
+
+    run_case = 1
+    if run_case == 1:
+        # check all of one year
+        root = '/mnt/personal/pictures/Joshua_Ryan/2008'
+        mychecker = folder_checker_and_adder(root, mydb, \
+                                         default_year=None, \
+                                         default_month=None)
+        mychecker.check()
+
     ## # New adding code
     ## root = '/mnt/personal/pictures/Joshua_Ryan/2008'
     ## folder_names = rwkos.find_dirs(root)
