@@ -772,7 +772,7 @@ if __name__ == '__main__':
         t_list = [t1,t2,t3,t4,t5]
 
         for i in range(1,len(t_list)):
-            dt = t[i] - t[i-1]
+            dt = t_list[i] - t_list[i-1]
             j = i + 1
             print('dt %i = %0.6g' % (j, dt))
 
