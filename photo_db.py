@@ -183,7 +183,8 @@ class photo(object):
                     rowout.append(val)
         return rowout
 
-class photo_db(spreadsheet.CSVSpreadSheet):
+#class photo_db(spreadsheet.CSVSpreadSheet):
+class photo_db(object):
     def __init__(self, pathin, force_new=False, **kwargs):
         if os.path.isdir(pathin):
             self.folder = pathin
@@ -192,29 +193,39 @@ class photo_db(spreadsheet.CSVSpreadSheet):
         else:
             self.folder, self.namein = os.path.split(pathin)
 
-        spreadsheet.CSVSpreadSheet.__init__(self, pathin, \
-                                            colmap=colmap, \
-                                            **kwargs)
-        self.colmap = colmap
-        self.next_id = 1
-        if (not force_new) and os.path.exists(pathin):
-            self.FindLabelRow('photo_id')
-            self.FindDataColumns()
-            self.MapCols()
-            self.next_id = int(self.photo_id.astype(float).max()) + 1
+        data = loadtxt(pathin,dtype=str,delimiter=',')
+        self.labels = data[0,:]
+        self.data = data[1:,:]
+        self.N_cols = len(self.labels)
+        inds = range(self.N_cols)
+        self.col_inds = dict(zip(self.labels, inds))
+        
+        ## spreadsheet.CSVSpreadSheet.__init__(self, pathin, \
+        ##                                     colmap=colmap, \
+        ##                                     **kwargs)
+        ## self.colmap = colmap
+        ## self.next_id = 1
+        ## if (not force_new) and os.path.exists(pathin):
+        ##     self.FindLabelRow('photo_id')
+        ##     self.FindDataColumns()
+        ##     self.MapCols()
+        ##     self.next_id = int(self.photo_id.astype(float).max()) + 1
 
-        elif (not hasattr(self, 'labels')) or \
-                 (self.labels == []) or \
-                 (self.labels is None):
-            #assume that if self.labels has been set, some sort of
-            #initiation has already been done.
-            self.labels = cols
-            for attr in cols:
-                setattr(self, attr, [])
-        else:
-            print('bypassing photo_db initialization')
+        ## elif (not hasattr(self, 'labels')) or \
+        ##          (self.labels == []) or \
+        ##          (self.labels is None):
+        ##     #assume that if self.labels has been set, some sort of
+        ##     #initiation has already been done.
+        ##     self.labels = cols
+        ##     for attr in cols:
+        ##         setattr(self, attr, [])
+        ## else:
+        ##     print('bypassing photo_db initialization')
 
-        self.convert_cols_to_int()
+
+
+        # --> fix me <--
+        #self.convert_cols_to_int()
 
 
     def search_for_row_by_photo_id(self, photo_id):
@@ -300,10 +311,6 @@ class photo_db(spreadsheet.CSVSpreadSheet):
                 if col != id_col:
                     item = self.clean_data(item, label)
                     self.alldata[alldata_row_ind][col] = item
-
-
-
-
 
 
     def convert_cols_to_int(self):
