@@ -585,10 +585,12 @@ class folder_checker(object):
         if verbosity > 0:
             self.print_results()
         if verbosity > 1:
+            print('------------------')
             print('in checker.run')
             print('t2-t1 = %0.6g' % (t2-t1))
             print('t3-t2 = %0.6g' % (t3-t2))
             print('t4-t3 = %0.6g' % (t4-t3))
+            print('------------------')
             
 
 
