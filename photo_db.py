@@ -798,15 +798,29 @@ if __name__ == '__main__':
     #
     ##############################################
 
-    run_case = 1
+    run_case = 2
     if run_case == 1:
         # check all of one year
-        root = '/mnt/personal/pictures/Joshua_Ryan/2008'
+        #root = '/mnt/personal/pictures/Joshua_Ryan/2008'
+        root = '/mnt/personal/pictures/Joshua_Ryan/2009'
         mychecker = folder_checker_and_adder(root, mydb, \
                                          default_year=None, \
                                          default_month=None)
         mychecker.check()
 
+    elif run_case == 2:
+        root = '/mnt/personal/pictures/Joshua_Ryan/2009/pictures_for_mothers_day_09'
+        mychecker = folder_checker_and_adder(root, mydb, \
+                                         default_year=None, \
+                                         default_month=None)
+        mychecker.check()
+
+        if mychecker.num_not_in > 0:
+            total = mychecker.num_not_in + mychecker.num_in
+            p = mychecker.num_not_in/total
+            if p > 0.9:
+                mychecker.add_photos_to_db()
+        
     ## # New adding code
     ## root = '/mnt/personal/pictures/Joshua_Ryan/2008'
     ## folder_names = rwkos.find_dirs(root)

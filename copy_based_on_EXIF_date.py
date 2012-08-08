@@ -1,5 +1,6 @@
 import photo_db, os, rwkos, shutil, re, glob, file_finder
 import time
+import pdb
 
 from file_finder import Image_Finder
 
@@ -173,12 +174,18 @@ def find_previous_photo(pathin):
 def find_next_photo(pathin):
     return _find_photo(pathin, inc=1)
 
+fmt = '%Y:%m:%d'
 
 def getctime_str(pathin):
     sec1 = os.path.getctime(pathin)
     struct1 = time.localtime(sec1)
-    str1 = time.strftime('%Y:%m:%d', struct1)
+    str1 = time.strftime(fmt, struct1)
     return str1
+
+
+def datestr_to_time(datestr):
+    t1 = time.strptime(datestr,fmt)
+    return t1
 
 
 def get_movie_date(pathin):
@@ -187,9 +194,14 @@ def get_movie_date(pathin):
     in the directory and the os.path.getctime of the movie file."""
     prev_photo = find_previous_photo(pathin)
     next_photo = find_next_photo(pathin)
+    ## print('pathin = ' + pathin)
+    ## print('prev_photo = ' + str(prev_photo))
+    ## print('next_photo = ' + str(next_photo))
+    
     prev_date = split_EXIF_date(get_EXIF_date(prev_photo))
     next_date = split_EXIF_date(get_EXIF_date(next_photo))
     ctime_str = getctime_str(pathin)
+
     ## print('prev_date = ' + prev_date)
     ## print('next_date = ' + next_date)
     ## print('ctime_str = ' + ctime_str)
@@ -199,8 +211,14 @@ def get_movie_date(pathin):
     elif (ctime_str == prev_date) or (ctime_str == next_date):
         return ctime_str
     else:
-        return None
-    
+        t_prev = datestr_to_time(prev_date)
+        t_next = datestr_to_time(next_date)
+        t_ctime = datestr_to_time(ctime_str)
+        if t_next > t_ctime > t_prev:
+            return ctime_str
+        else:
+            return None
+
 
 def copy_one_movie_file(pathin, root=None):
     """It is tricky to find the date for an movie file, because they
