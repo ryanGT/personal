@@ -3,7 +3,7 @@
 # example helloworld.py
 import os
 
-import rwkmisc
+import rwkmisc, rwkos, pdb
 
 settings_path = 'picture_importer_settings.pkl'
 
@@ -57,7 +57,11 @@ class copy_thread(threading.Thread):
             folder, filename = os.path.split(curpath)
             fno, ext = os.path.splitext(filename)
             gobject.idle_add(self.GUI.set_progress, fraction, filename)
-            copy_lib.copy_one_movie_file(curpath, root=self.dest_root)
+            try:
+                copy_lib.copy_one_movie_file(curpath, root=self.dest_root)
+            except AssertionError:
+                print('could not find a valid date for: %s, \n doing nothing' % \
+                      curpath)
 
         gobject.idle_add(self.GUI.append_to_log, 'Copying picture files')
 
@@ -141,6 +145,7 @@ class picture_importer(rwkmisc.gui_that_saves):
 
     def go(self, widget, data=None):
         source_path = self.path1.get_text()
+        #pdb.set_trace()
         dest_root = self.path2.get_text()
         if not source_path:
             self.append_to_log('Cannot copy files without valid source path.')
@@ -197,6 +202,16 @@ class picture_importer(rwkmisc.gui_that_saves):
         print "destroy signal occurred"
         self.save(settings_path)
         gtk.main_quit()
+
+
+    def search_path_append_log(self, source_path):
+        myfinder = file_finder.Multi_Media_Finder(source_path)
+        files = myfinder.Find_Top_Level_Files()
+        if len(files) > 0:
+            self.append_to_log('Found %i image and movie files in %s.' % \
+                               (len(files), source_path))
+        return files
+        
 
     def __init__(self):
         # create a new window
@@ -365,13 +380,21 @@ class picture_importer(rwkmisc.gui_that_saves):
             self.load(settings_path)
 
 
+        found_some = False
         source_path = self.path1.get_text()
         if source_path:
             if os.path.exists(source_path):
-                myfinder = file_finder.Multi_Media_Finder(source_path)
-                files = myfinder.Find_Top_Level_Files()
-                self.append_to_log('Found %i image and movie files in %s.' % \
-                                   (len(files), source_path))
+                files = self.search_path_append_log(source_path)
+                if len(files) > 0:
+                    found_some = True
+                
+        ## if not found_some:
+        ##     myroot = copy_lib.find_gvfs_path()
+        ##     source_path = rwkos.walk_down_trunk(myroot)
+        ##     print('source_path = ' + source_path)
+        ##     files = self.search_path_append_log(source_path)
+        ##     if len(files) > 0:
+        ##         self.path1.set_text(source_path)
                 
         # and the window
         #self.window.show()

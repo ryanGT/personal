@@ -192,14 +192,23 @@ def get_movie_date(pathin):
     """determine the date associated with a movie file based on a
     combination of the EXIF date of the next and previous still image
     in the directory and the os.path.getctime of the movie file."""
+    #pdb.set_trace()
     prev_photo = find_previous_photo(pathin)
     next_photo = find_next_photo(pathin)
-    ## print('pathin = ' + pathin)
-    ## print('prev_photo = ' + str(prev_photo))
-    ## print('next_photo = ' + str(next_photo))
+    print('pathin = ' + pathin)
+    print('prev_photo = ' + str(prev_photo))
+    print('next_photo = ' + str(next_photo))
+
+    if next_photo is None:
+        next_date = None
+    else:
+        next_date = split_EXIF_date(get_EXIF_date(next_photo))
+
+    if prev_photo is None:
+        prev_date = None
+    else:
+        prev_date = split_EXIF_date(get_EXIF_date(prev_photo))
     
-    prev_date = split_EXIF_date(get_EXIF_date(prev_photo))
-    next_date = split_EXIF_date(get_EXIF_date(next_photo))
     ctime_str = getctime_str(pathin)
 
     ## print('prev_date = ' + prev_date)
@@ -240,6 +249,33 @@ def copy_one_movie_file(pathin, root=None):
     ## print('destpath = ' + destpath)
     shutil.move(pathin, destpath)
     return destpath
+
+
+def find_gvfs_path(verbosity=1):
+    homedir = os.path.expanduser('~')
+    gvfs_path = os.path.join(homedir, '.gvfs')
+    if not os.path.exists(gvfs_path):
+        if verbosity > 0:
+            print('did not find ' + gvfs_path)
+        return None
+    dirs1 = os.listdir(gvfs_path)
+    assert len(dirs1) == 1, "did not find exactly one folder in gvfs_path: %s" % \
+           dirs1
+    usb_folder = dirs1[0]
+    assert usb_folder.find('mount on usb') > -1, "did not find mount on usb in usb_folder: " + usb_folder
+    usb_path = os.path.join(gvfs_path, usb_folder)
+    dirs2 = os.listdir(usb_path)
+    assert len(dirs2) in [1,2], "did not find one or two folders in usb_path. dirs2 = " + str(dirs2)
+    if len(dirs2) == 2:
+        myfolder = dirs2[0]
+        assert myfolder.find('store_0001') == 0, "myfolder did not start with store_0001: " + myfolder
+    else:
+        myfolder = dirs2[0]
+
+    myroot = os.path.join(usb_path, myfolder)
+    
+    return myroot
+    
     
 if __name__ == '__main__':
     ## mypath = '/home/ryan/Desktop/pics_2012/Apr_2012/unsorted'
