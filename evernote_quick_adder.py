@@ -38,13 +38,13 @@ class evernote_gui(object):
 
     def set_tags(self):
         """auto-set initial tags"""
-        pass
+        default_tags = 'from_python'
         ## tag_str = ''
         ## if 5 < now.tm_hour < 12:
         ##     tag_str += 'morning'
         ## elif 18 < now.tm_hour < 24:
         ##     tag_str += 'evening'
-        ## self.tags_entry.set_text(tag_str)
+        self.tags_entry.set_text(default_tags)
 
 
     def add_widgets_above(self):
