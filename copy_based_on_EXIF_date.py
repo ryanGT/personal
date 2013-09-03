@@ -211,18 +211,27 @@ def get_movie_date(pathin):
     
     ctime_str = getctime_str(pathin)
 
-    ## print('prev_date = ' + prev_date)
-    ## print('next_date = ' + next_date)
-    ## print('ctime_str = ' + ctime_str)
+    print('prev_date = %s' % prev_date)
+    print('next_date = %s' % next_date)
+    print('ctime_str = %s' % ctime_str)
 
     if prev_date == next_date:
         return prev_date
     elif (ctime_str == prev_date) or (ctime_str == next_date):
         return ctime_str
     else:
-        t_prev = datestr_to_time(prev_date)
-        t_next = datestr_to_time(next_date)
+        bad_date = '1900:01:01'
         t_ctime = datestr_to_time(ctime_str)
+        
+        if prev_date is None:
+            t_prev = datestr_to_time(bad_date)
+        else:
+            t_prev = datestr_to_time(prev_date)
+        if next_date is None:
+            t_next = datestr_to_time(bad_date)
+        else:
+            t_next = datestr_to_time(next_date)
+
         if t_next > t_ctime > t_prev:
             return ctime_str
         else:
@@ -276,7 +285,53 @@ def find_gvfs_path(verbosity=1):
     
     return myroot
     
-    
+
+
+#################################
+#
+# Christmas 2012
+#
+# - sort by month only
+# - don't mess with the name
+#
+#################################
+def _build_path_month_no_day(year_str, month_str, \
+                             root=None, makedirs=True):
+    if root is None:
+        root = '/media/FreeAgent/ryan_personal/Christmas_2012/unsorted/'
+
+    year_folder = os.path.join(root, year_str)
+    month_folder = os.path.join(year_folder, month_str)
+
+    if makedirs:
+        rwkos.make_dir(year_folder)
+        rwkos.make_dir(month_folder)
+
+    return month_folder
+
+
+def build_path_month_no_day(photo, root=None, makedirs=True):
+    """Build the fullpath to the folder where photo should be moved
+    to, i.e. root/year/month_year/YYYY-MM-DD.  If makedirs is True,
+    then then make all the folders in the tree as needed."""
+    year_str = '%i' % photo.year
+    month_str = '%s_%s' % (photo.month, year_str)
+    month_path = _build_path_month_no_day(year_str, month_str, \
+                                          root=root, \
+                                          makedirs=makedirs)
+    return month_path
+
+
+def copy_one_image_Christmas_2012(pathin, root=None):
+    myphoto = photo_db.photo(pathin, get_EXIF_data=True, \
+                             get_os_data=True, calc_md5=False, \
+                             get_PIL_size=False, basepath=None, dictin=None)
+    destfolder = build_path_month_no_day(myphoto, root=root)
+    src_folder, name = os.path.split(myphoto.pathin)
+    destpath = os.path.join(destfolder, name)
+    shutil.move(myphoto.pathin, destpath)
+    return myphoto, destpath
+
 if __name__ == '__main__':
     ## mypath = '/home/ryan/Desktop/pics_2012/Apr_2012/unsorted'
     ## myimages = find_all_photos(mypath)
@@ -284,10 +339,13 @@ if __name__ == '__main__':
     ##     photo, dp = copy_one_image(image)
 
     
-    mypath = '/media/NIKON D7000/DCIM/100D7000'
-    mov_pat = os.path.join(mypath, '*.MOV')
-    mov_files = glob.glob(mov_pat)
+    mypath = '/media/FreeAgent/ryan_personal/Christmas_2012/unsorted/'
+    mypat = os.path.join(mypath, '*.jpg')
+    files = glob.glob(mypat)
+    pat2 = os.path.join(mypath, '*.JPG')
+    files2 = glob.glob(pat2)
+    allfiles = files + files2
     #for mov_file in mov_files[0:1]:
-    for mov_file in mov_files:
-        mydate = copy_one_movie_file(mov_file)
+    for curfile in allfiles:
+        copy_one_image_Christmas_2012(curfile)
     
