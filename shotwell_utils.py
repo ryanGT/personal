@@ -47,3 +47,38 @@ def find_folders(paths):
         folders.append(folder)
 
     return folders
+
+
+def is_jpg(pathin):
+    pne, ext = os.path.splitext(pathin)
+    return ext.lower() == '.jpg'
+
+
+def is_not_jpg(pathin):
+    return not is_jpg(pathin)
+
+
+std_pat = re.compile('(DSC|D7K|100)_([0-9]{4})\\.(JPG|jpg)')
+
+
+def is_standard_filename(pathin):
+    pne, filename = os.path.split(pathin)
+    return bool(std_pat.match(filename))
+
+
+def get_jpg_num(pathin):
+    pne, filename = os.path.split(pathin)    
+    q = std_pat.match(filename)
+    return int(q.group(2))
+
+
+def find_other_files(folder):
+    allfiles = glob.glob(os.path.join(folder, '*'))
+    other_paths = filter(is_not_jpg, allfiles)
+    other_files = []
+    for curpath in other_paths:
+        folder, filename = os.path.split(curpath)
+        other_files.append(filename)
+    other_files.sort()
+    return other_files
+
