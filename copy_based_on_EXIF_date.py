@@ -102,6 +102,7 @@ def find_max_and_min_file_numbers(folderpath):
     low_num = find_file_number(first_file)
     high_num = find_file_number(last_file)
     return high_num, low_num
+
     
 def copy_one_image(pathin, root=None):
     myphoto = photo_db.photo(pathin, get_EXIF_data=True, \
@@ -195,9 +196,9 @@ def get_movie_date(pathin):
     #pdb.set_trace()
     prev_photo = find_previous_photo(pathin)
     next_photo = find_next_photo(pathin)
-    print('pathin = ' + pathin)
-    print('prev_photo = ' + str(prev_photo))
-    print('next_photo = ' + str(next_photo))
+    #print('pathin = ' + pathin)
+    #print('prev_photo = ' + str(prev_photo))
+    #print('next_photo = ' + str(next_photo))
 
     if next_photo is None:
         next_date = None
@@ -211,10 +212,14 @@ def get_movie_date(pathin):
     
     ctime_str = getctime_str(pathin)
 
-    print('prev_date = %s' % prev_date)
-    print('next_date = %s' % next_date)
-    print('ctime_str = %s' % ctime_str)
+    #print('prev_date = %s' % prev_date)
+    #print('next_date = %s' % next_date)
+    #print('ctime_str = %s' % ctime_str)
 
+    if next_date and (prev_date is None):
+        return next_date
+    elif prev_date and (next_date is None):
+        return prev_date
     if prev_date == next_date:
         return prev_date
     elif (ctime_str == prev_date) or (ctime_str == next_date):
@@ -332,6 +337,37 @@ def copy_one_image_Christmas_2012(pathin, root=None):
     shutil.move(myphoto.pathin, destpath)
     return myphoto, destpath
 
+
+def build_shotwell_movie_path(pathin):
+    shotwell_root = '/mnt/personal/pictures/shotwell'
+    dummy, filename = os.path.split(pathin)
+    date_str = get_movie_date(pathin)
+    year_str, month_str, day_str = date_str.split(':')
+    #year = int(year_str)
+    month = int(month_str)
+    day = int(day_str)
+    new_month_str = '%0.2i' % month#<-- ensure leading zero
+    new_day_str = '%0.2i' % day
+    relpath = os.path.join(year_str, new_month_str, new_day_str)
+    folder = os.path.join(shotwell_root, relpath)
+    fullpath = os.path.join(folder, filename)
+    return fullpath
+
+
+def make_shotwell_paths_if_necessary(pathin):
+    day_folder, filename = os.path.split(pathin)
+    month_folder, day_name = os.path.split(day_folder)
+    year_folder, month_name = os.path.split(month_folder)
+    rwkos.make_dirs([year_folder, month_folder, day_folder])
+    
+    
+def move_one_movie_into_shotwell(pathin):
+    dst_path = build_shotwell_movie_path(pathin)
+    make_shotwell_paths_if_necessary(dst_path)
+    shutil.move(pathin, dst_path)
+    return dst_path
+
+    
 if __name__ == '__main__':
     ## mypath = '/home/ryan/Desktop/pics_2012/Apr_2012/unsorted'
     ## myimages = find_all_photos(mypath)
@@ -339,13 +375,27 @@ if __name__ == '__main__':
     ##     photo, dp = copy_one_image(image)
 
     
-    mypath = '/media/FreeAgent/ryan_personal/Christmas_2012/unsorted/'
-    mypat = os.path.join(mypath, '*.jpg')
-    files = glob.glob(mypat)
-    pat2 = os.path.join(mypath, '*.JPG')
-    files2 = glob.glob(pat2)
-    allfiles = files + files2
-    #for mov_file in mov_files[0:1]:
-    for curfile in allfiles:
-        copy_one_image_Christmas_2012(curfile)
+    ## mypath = '/media/FreeAgent/ryan_personal/Christmas_2012/unsorted/'
+    ## mypat = os.path.join(mypath, '*.jpg')
+    ## files = glob.glob(mypat)
+    ## pat2 = os.path.join(mypath, '*.JPG')
+    ## files2 = glob.glob(pat2)
+    ## allfiles = files + files2
+    ## #for mov_file in mov_files[0:1]:
+    ## for curfile in allfiles:
+    ##     copy_one_image_Christmas_2012(curfile)
+
+
+    #copy from krauss_photos to shotwell
+    import file_finder
+    folder = '/mnt/personal/pictures/krauss_photos/2012/May_2012'
+    movie_finder = file_finder.Movie_Finder(folder)
+    movie_paths = movie_finder.Find_All_Files()
+
+    dst_paths = []
+
+    for path in movie_paths:
+        cur_dst = move_one_movie_into_shotwell(path)
+        dst_paths.append(cur_dst)
+
     
