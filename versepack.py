@@ -64,7 +64,7 @@ class memoryverse:
            out('{\\'+self.fontsize)
        out('\\parbox[t][1.75in]{2.5in}{')
        out('\\raggedright{')
-       out('\\begin{tabular*}{2.7in}{@{}l@{\\extracolsep{\\fill}}r}')
+       out('\\begin{tabular*}{2.6in}{@{}l@{\\extracolsep{\\fill}}r}')
        out(colorstr+self.ref +' & '+colorstr+self.label)
        out('\\end{tabular*}')
        out('\\\\')
